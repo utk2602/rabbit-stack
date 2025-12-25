@@ -12,6 +12,7 @@
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^6.19.1",
     "@types/pg": "^8.16.0",
+    "better-auth": "^1.4.8",
     "dotenv": "^17.2.3",
     "next": "16.0.10",
     "pg": "^8.16.3",
