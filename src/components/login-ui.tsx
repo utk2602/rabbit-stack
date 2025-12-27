@@ -121,14 +121,12 @@ export const LoginUI = () => {
                     key={index}
                     className={`absolute inset-0 transition-opacity duration-1000 ease-in-out flex items-center justify-center ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}
                   >
-                    {/* Using img tag as requested, user needs to provide these images in public folder */}
-                    {/* Fallback to SVG if image fails or for demo purposes if file missing */}
+                    
                     <img 
                       src={slide.image} 
                       alt={`Slide ${index + 1}`} 
                       className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]"
                       onError={(e) => {
-                        // Fallback to the SVG placeholder if image not found
                         e.currentTarget.style.display = 'none';
                         e.currentTarget.nextElementSibling?.classList.remove('hidden');
                       }}
@@ -146,7 +144,7 @@ export const LoginUI = () => {
         </div>
 
         {/* Bottom Text Slideshow */}
-        <div className="relative z-10 space-y-6 h-32">
+        <div className="relative z-10 space-y-25 h-32">
           <div className="relative h-20">
             {slides.map((slide, index) => (
               <h2 

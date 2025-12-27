@@ -3,10 +3,12 @@
 import { signIn, signOut, useSession } from "../../lib/auth-client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export function AuthButton() {
   const { data: session, isPending } = useSession();
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -38,8 +40,17 @@ export function AuthButton() {
             {session.user.name || session.user.email}
           </span>
         </div>
+        <Link
+          href="/dashboard"
+          className="flex h-10 items-center justify-center gap-2 rounded-full bg-indigo-600 px-5 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+        >
+          Dashboard
+        </Link>
         <button
-          onClick={() => signOut()}
+          onClick={() => {
+            signOut();
+            router.push('/');
+          }}
           className="flex h-10 items-center justify-center gap-2 rounded-full bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
         >
           Sign Out
