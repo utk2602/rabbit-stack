@@ -4,10 +4,12 @@ import { signIn, signOut, useSession } from "../../lib/auth-client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { LoginUI } from "./login-ui";
 
 export function AuthButton() {
   const { data: session, isPending } = useSession();
   const [mounted, setMounted] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -60,11 +62,14 @@ export function AuthButton() {
   }
 
   return (
-    <Link
-      href="/login"
-      className="flex h-12 items-center justify-center gap-2 rounded-full bg-zinc-900 px-6 text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-    >
-      Sign In
-    </Link>
+    <>
+      <button
+        onClick={() => setShowLoginModal(true)}
+        className="flex h-12 items-center justify-center gap-2 rounded-full bg-zinc-900 px-6 text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+      >
+        Sign In
+      </button>
+      {showLoginModal && <LoginUI onClose={() => setShowLoginModal(false)} />}
+    </>
   );
 }
