@@ -1,9 +1,12 @@
-import React from 'react'
-import MainPage from './page'
-const layoutpage = () => {
-  return (
-    <div><MainPage/></div>
-  )
-}
 
-export default layoutpage
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <>
+      {children}
+    </>
+  );
+}

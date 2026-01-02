@@ -94,14 +94,12 @@ export const LoginUI = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-neutral-950 text-white font-sans selection:bg-indigo-500/30">
-      {/* Left Section - Visual Branding */}
-      <div className="hidden lg:flex w-[40%] relative flex-col justify-between p-12 overflow-hidden bg-neutral-950 border-r border-white/5">
-        {/* Background Effects */}
+    <div className="h-screen w-full flex bg-neutral-950 text-white font-sans selection:bg-indigo-500/30 overflow-hidden">
+      
+      <div className="hidden lg:flex w-[40%] relative flex-col justify-between p-8 overflow-hidden bg-neutral-950 border-r border-white/5">
+        
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-indigo-900/20 via-neutral-950 to-neutral-950 z-0"></div>
         <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-0 mix-blend-overlay"></div>
-
-        {/* Top Bar */}
         <div className="relative z-10 flex justify-end items-center w-full">
           <Link href="/" className="px-4 py-2 rounded-full text-sm font-medium text-white/80 border border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-all flex items-center gap-2 group">
             Back to website
@@ -111,10 +109,10 @@ export const LoginUI = () => {
           </Link>
         </div>
 
-        {/* Center Image Slideshow */}
-        <div className="relative z-10 flex-1 flex items-center justify-center my-8">
+        
+        <div className="relative z-10 flex-1 flex items-center justify-center my-4">
           <div className="relative w-full max-w-md aspect-square">
-             {/* Slideshow Container */}
+             
              <div className="w-full h-full flex items-center">
                 {slides.map((slide, index) => (
                   <div 
@@ -143,13 +141,13 @@ export const LoginUI = () => {
           </div>
         </div>
 
-        {/* Bottom Text Slideshow */}
-        <div className="relative z-10 space-y-25 h-32">
+        
+        <div className="relative z-10 space-y-4 h-32">
           <div className="relative h-20">
             {slides.map((slide, index) => (
               <h2 
                 key={index}
-                className={`absolute top-0 left-0 text-4xl font-medium leading-tight tracking-tight transition-opacity duration-1000 ease-in-out whitespace-pre-line ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute top-0 left-0 text-3xl font-medium leading-tight tracking-tight transition-opacity duration-1000 ease-in-out whitespace-pre-line ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}
               >
                 {slide.tagline}
               </h2>
@@ -169,12 +167,12 @@ export const LoginUI = () => {
         </div>
       </div>
 
-      {/* Right Section - Form Area */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 lg:p-24 bg-neutral-950 relative">
-        <div className="w-full max-w-md space-y-8">
+      
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-neutral-950 relative">
+        <div className="w-full max-w-md space-y-6">
           
-          {/* Mobile Header (Visible only on small screens) */}
-          <div className="lg:hidden flex justify-between items-center mb-8">
+          
+          <div className="lg:hidden flex justify-between items-center mb-4">
              <div className="flex items-center gap-2">
                 <span className="font-bold tracking-wider text-lg">CODE RABBIT</span>
              </div>
@@ -182,10 +180,10 @@ export const LoginUI = () => {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-white tracking-tight">
               {isLogin ? 'Welcome back' : 'Create an account'}
             </h1>
-            <p className="text-gray-400">
+            <p className="text-gray-400 text-sm">
               {isLogin ? 'New to Code Rabbit? ' : 'Already have an account? '}
               <button 
                 onClick={() => setIsLogin(!isLogin)}
@@ -202,7 +200,7 @@ export const LoginUI = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -212,7 +210,7 @@ export const LoginUI = () => {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required={!isLogin}
-                    className="w-full bg-neutral-900/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                    className="w-full bg-neutral-900/50 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
                     placeholder="John"
                   />
                 </div>
@@ -223,7 +221,7 @@ export const LoginUI = () => {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required={!isLogin}
-                    className="w-full bg-neutral-900/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                    className="w-full bg-neutral-900/50 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
                     placeholder="Doe"
                   />
                 </div>
@@ -237,7 +235,7 @@ export const LoginUI = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full bg-neutral-900/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                className="w-full bg-neutral-900/50 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
                 placeholder="name@example.com"
               />
             </div>
@@ -251,7 +249,7 @@ export const LoginUI = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  className="w-full bg-neutral-900/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all pr-10"
+                  className="w-full bg-neutral-900/50 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all pr-10"
                   placeholder="••••••••"
                 />
                 <button
@@ -292,7 +290,7 @@ export const LoginUI = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 px-4 bg-white hover:bg-gray-200 text-black font-bold rounded-lg shadow-lg transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-white hover:bg-gray-200 text-black font-bold rounded-lg shadow-lg transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -317,7 +315,7 @@ export const LoginUI = () => {
             <button 
               type="button"
               onClick={handleGithubSignIn}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-neutral-900 border border-white/10 rounded-lg text-white hover:bg-neutral-800 transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white hover:bg-neutral-800 transition-colors"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.463 2 11.97c0 4.404 2.865 8.14 6.839 9.458.5.092.682-.216.682-.48 0-.236-.008-.864-.013-1.695-2.782.602-3.369-1.337-3.369-1.337-.454-1.151-1.11-1.458-1.11-1.458-.908-.618.069-.606.069-.606 1.003.07 1.531 1.027 1.531 1.027.892 1.524 2.341 1.084 2.91.828.092-.643.35-1.083.636-1.332-2.22-.251-4.555-1.107-4.555-4.927 0-1.088.39-1.979 1.029-2.675-.103-.252-.446-1.266.098-2.638 0 0 .84-.268 2.75 1.022A9.607 9.607 0 0112 6.82c.85.004 1.705.114 2.504.336 1.909-1.29 2.747-1.022 2.747-1.022.546 1.372.202 2.386.1 2.638.64.696 1.028 1.587 1.028 2.675 0 3.83-2.339 4.673-4.566 4.92.359.307.678.915.678 1.846 0 1.332-.012 2.407-.012 2.734 0 .267.18.576.688.48C19.138 20.115 22 16.379 22 11.97 22 6.463 17.522 2 12 2z" />
@@ -327,7 +325,7 @@ export const LoginUI = () => {
             <button 
               type="button"
               onClick={() => handleSocialMock('google')}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-neutral-900 border border-white/10 rounded-lg text-white hover:bg-neutral-800 transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white hover:bg-neutral-800 transition-colors"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -339,19 +337,11 @@ export const LoginUI = () => {
             </button>
           </div>
           
-          {/* GitHub Button (Keeping it as it was functional before, maybe as a secondary option or just hidden if user strictly wants Google/Apple) */}
-          {/* I will add it as a smaller option below or just replace one if needed. 
-              Since the prompt asked for Google and Apple, I'll stick to those in the main grid. 
-              I'll add GitHub as a text link or icon below if needed, but for now I'll leave it out to match the design strictly.
-              Wait, the user said "I have already implemented Oauth so look into that". 
-              If I remove GitHub button, they can't use the existing OAuth. 
-              I will add GitHub as a third button or replace Apple if Apple is not configured.
-              Actually, I'll add a third button for GitHub to be safe.
-          */}
+          
            <div className="mt-4">
             <button
                 onClick={handleGithubSignIn}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#24292F] hover:bg-[#24292F]/90 border border-white/10 rounded-lg text-white transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#24292F] hover:bg-[#24292F]/90 border border-white/10 rounded-lg text-white transition-colors"
             >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.463 2 11.97c0 4.404 2.865 8.14 6.839 9.458.5.092.682-.216.682-.48 0-.236-.008-.864-.013-1.695-2.782.602-3.369-1.337-3.369-1.337-.454-1.151-1.11-1.458-1.11-1.458-.908-.618.069-.606.069-.606 1.003.07 1.531 1.027 1.531 1.027.892 1.524 2.341 1.084 2.91.828.092-.643.35-1.083.636-1.332-2.22-.251-4.555-1.107-4.555-4.927 0-1.088.39-1.979 1.029-2.675-.103-.252-.446-1.266.098-2.638 0 0 .84-.268 2.75 1.022A9.607 9.607 0 0112 6.82c.85.004 1.705.114 2.504.336 1.909-1.29 2.747-1.022 2.747-1.022.546 1.372.202 2.386.1 2.638.64.696 1.028 1.587 1.028 2.675 0 3.83-2.339 4.673-4.566 4.92.359.307.678.915.678 1.846 0 1.332-.012 2.407-.012 2.734 0 .267.18.576.688.48C19.138 20.115 22 16.379 22 11.97 22 6.463 17.522 2 12 2z" />
