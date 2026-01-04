@@ -1,5 +1,6 @@
 import { requireAuth } from "../../../lib/auth-utils";
-import { getContributionStatsByUserId, getMonthlyActivityStatsByUserId, getGithubProfile } from "../../../module/github/github";
+import { getUserContributionsByUserId, getContributionStatsByUserId, getMonthlyActivityStatsByUserId, getGithubProfile } from "../../../module/github/github";
+import { ContributionGraph } from "../../components/ContributionGraph";
 import { 
   GitCommit, 
   GitPullRequest, 
@@ -17,12 +18,11 @@ import Link from "next/link";
 export default async function DashboardPage() {
   const session = await requireAuth();
   const userId = session.user.id;
-
-  // Fetch data in parallel
-  const [profile, stats, monthlyStats] = await Promise.all([
+  const [profile, stats, monthlyStats, contributions] = await Promise.all([
     getGithubProfile(userId).catch(() => null),
     getContributionStatsByUserId(userId).catch(() => null),
-    getMonthlyActivityStatsByUserId(userId).catch(() => null)
+    getMonthlyActivityStatsByUserId(userId).catch(() => null),
+    getUserContributionsByUserId(userId).catch(() => null)
   ]);
 
   if (!profile || !stats) {
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500">{profile.name || profile.login}</span>
+            Welcome back, <span className="text-transparent bg-clip-text bg-linear-to-r from-white to-zinc-500">{profile.name || profile.login}</span>
           </h1>
           <p className="text-zinc-400">Here's what's happening with your code reviews and repositories.</p>
         </div>
@@ -134,9 +134,9 @@ export default async function DashboardPage() {
                       <div key={i} className="flex-1 flex flex-col items-center gap-2 group min-w-0">
                         <div className="w-full relative flex items-end justify-center" style={{ height: `${maxBarHeight}px` }}>
                           <div 
-                            className={`w-full max-w-[28px] mx-auto rounded-t-md transition-all duration-300 ${
+                            className={`w-full max-w-7 mx-auto rounded-t-md transition-all duration-300 ${
                               month.totalContributions > 0 
-                                ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 hover:from-emerald-500 hover:to-emerald-300 shadow-lg shadow-emerald-500/20' 
+                                ? 'bg-linear-to-t from-emerald-600 to-emerald-400 hover:from-emerald-500 hover:to-emerald-300 shadow-lg shadow-emerald-500/20' 
                                 : 'bg-zinc-800'
                             }`}
                             style={{ height: `${barHeight}px` }}
@@ -161,6 +161,21 @@ export default async function DashboardPage() {
                     <p className="text-sm">No contribution data available</p>
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* Contribution Graph */}
+            <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
+               <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-zinc-400" />
+                  Daily Contributions
+                </h2>
+              </div>
+              {contributions ? (
+                <ContributionGraph calendar={contributions.contributionCalendar} />
+              ) : (
+                <div className="text-zinc-500 text-center py-8">No contribution data available</div>
               )}
             </div>
 
@@ -229,7 +244,7 @@ export default async function DashboardPage() {
             </div>
 
             {/* System Status / Info */}
-            <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6 relative overflow-hidden">
+            <div className="bg-linear-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10">
                 <Code2 className="w-24 h-24" />
               </div>
