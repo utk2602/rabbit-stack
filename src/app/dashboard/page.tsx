@@ -47,14 +47,24 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-zinc-800">
-      {/* Top Navigation Bar */}
       <header className="border-b border-zinc-800 bg-black/50 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-black font-bold text-xl">R</span>
-            </div>
-            <span className="font-bold text-lg tracking-tight">Rabbit Stack</span>
+          <div className="flex items-center gap-6">
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                <span className="text-black font-bold text-xl">R</span>
+              </div>
+              <span className="font-bold text-lg tracking-tight">Rabbit Stack</span>
+            </Link>
+            
+            <nav className="hidden sm:flex items-center gap-4">
+              <Link href="/dashboard" className="text-sm text-white font-medium">
+                Dashboard
+              </Link>
+              <Link href="/repositories" className="text-sm text-zinc-400 hover:text-white transition-colors">
+                Repositories
+              </Link>
+            </nav>
           </div>
           
           <div className="flex items-center gap-4">
@@ -71,7 +81,6 @@ export default async function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
             Welcome back, <span className="text-transparent bg-clip-text bg-linear-to-r from-white to-zinc-500">{profile.name || profile.login}</span>
@@ -105,9 +114,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Chart Section */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Activity Chart */}
             <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -124,8 +131,7 @@ export default async function DashboardPage() {
                   {monthlyStats.slice().reverse().map((month, i) => {
                     const max = Math.max(...(monthlyStats.map(m => m.totalContributions)), 1);
                     const heightPercent = max > 0 ? (month.totalContributions / max) * 100 : 0;
-                    // Use pixel-based height instead of percentage for reliability
-                    const maxBarHeight = 180; // pixels
+                    const maxBarHeight = 180; 
                     const barHeight = month.totalContributions > 0 
                       ? Math.max((heightPercent / 100) * maxBarHeight, 12) 
                       : 4;
@@ -141,7 +147,6 @@ export default async function DashboardPage() {
                             }`}
                             style={{ height: `${barHeight}px` }}
                           ></div>
-                          {/* Tooltip */}
                           <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-zinc-900 text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-zinc-700 pointer-events-none z-10 shadow-xl">
                             <div className="font-semibold text-white">{month.monthName} {month.year}</div>
                             <div className="text-zinc-400">{month.totalContributions} contributions</div>
@@ -164,7 +169,6 @@ export default async function DashboardPage() {
               )}
             </div>
 
-            {/* Contribution Graph */}
             <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
                <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -179,7 +183,6 @@ export default async function DashboardPage() {
               )}
             </div>
 
-            {/* Recent Repositories (Mocked as "Recent Reviews" style) */}
             <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden">
               <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
                 <h2 className="text-lg font-semibold">Top Repositories</h2>
@@ -216,9 +219,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Quick Actions */}
             <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
               <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
               <div className="space-y-3">
@@ -243,7 +244,6 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            {/* System Status / Info */}
             <div className="bg-linear-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10">
                 <Code2 className="w-24 h-24" />
