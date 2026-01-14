@@ -1,9 +1,8 @@
-
 import { Sidebar } from "@/components/Sidebar";
 import { requireAuth } from "../../../lib/auth-utils";
 import { getGithubProfile } from "../../../module/github/github";
 
-export default async function DashboardLayout({
+export default async function RepositoriesLayout({
   children,
 }: {
   children: React.ReactNode
@@ -20,4 +19,3 @@ export default async function DashboardLayout({
     </div>
   );
 }
-
