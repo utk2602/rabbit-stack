@@ -19,6 +19,7 @@ model user {
   accounts      account[]
   repositories  repository[]
   sessions      session[]
+  settings      settings?
 }
 
 model account {
@@ -80,6 +81,8 @@ model repository {
   openIssues  Int      @default(0)
   isPrivate   Boolean  @default(false)
   isConnected Boolean  @default(false)
+  webhookId   Int?     // GitHub webhook ID for this repository
+  webhookSecret String? // Secret for verifying webhook payloads
   userId      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -87,4 +90,22 @@ model repository {
 
   @@index([userId])
   @@index([isConnected])
+}
+
+model settings {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  theme               String   @default("dark")
+  emailNotifications  Boolean  @default(true)
+  pushNotifications   Boolean  @default(false)
+  language            String   @default("en")
+  timezone            String   @default("UTC")
+  publicProfile       Boolean  @default(true)
+  showActivity        Boolean  @default(true)
+  showRepositories    Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

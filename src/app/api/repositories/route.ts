@@ -50,13 +50,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "githubId is required" }, { status: 400 });
     }
 
-    const isConnected = await toggleRepositoryConnection(
+    const result = await toggleRepositoryConnection(
       session.user.id,
       githubId,
       repoData
     );
 
-    return NextResponse.json({ isConnected });
+    return NextResponse.json({
+      isConnected: result.isConnected,
+      webhookCreated: result.webhookCreated,
+      error: result.error,
+    });
   } catch (error) {
     console.error("Error toggling repository connection:", error);
     return NextResponse.json(

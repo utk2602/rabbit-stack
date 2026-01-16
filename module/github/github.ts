@@ -1,10 +1,22 @@
 import { db } from "../../lib/db";
+import crypto from "crypto";
 
 const GITHUB_GRAPHQL_API = "https://api.github.com/graphql";
+const GITHUB_REST_API = "https://api.github.com";
 
-/**
- * Get GitHub access token for a user from the database
- */
+const WEBHOOK_EVENTS = [
+  "push",
+  "pull_request",
+  "pull_request_review",
+  "pull_request_review_comment",
+  "issue_comment",
+  "commit_comment",
+];
+
+function generateWebhookSecret(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
 export async function getGithubToken(userId: string): Promise<string | null> {
   const account = await db.account.findFirst({
     where: {
@@ -18,10 +30,6 @@ export async function getGithubToken(userId: string): Promise<string | null> {
 
   return account?.accessToken ?? null;
 }
-
-/**
- * GraphQL query to fetch user contributions
- */
 const CONTRIBUTIONS_QUERY = `
   query($username: String!, $from: DateTime!, $to: DateTime!) {
     user(login: $username) {
@@ -99,14 +107,6 @@ export interface UserContributions {
     contributionsCollection: ContributionsCollection;
   };
 }
-
-/**
- * Fetch user contributions from GitHub using GraphQL
- * @param userId - The user ID to fetch the GitHub token for
- * @param username - The GitHub username to fetch contributions for
- * @param from - Start date for contributions (ISO string)
- * @param to - End date for contributions (ISO string)
- */
 export async function fetchUserContributions(
   userId: string,
   username: string,
@@ -520,6 +520,139 @@ export async function syncUserRepositories(
 }
 
 
+export interface WebhookConfig {
+  id: number;
+  url: string;
+  active: boolean;
+  events: string[];
+  created_at: string;
+}
+
+
+export async function createRepositoryWebhook(
+  userId: string,
+  owner: string,
+  repo: string,
+  webhookUrl: string,
+  secret: string
+): Promise<WebhookConfig | null> {
+  const accessToken = await getGithubToken(userId);
+
+  if (!accessToken) {
+    throw new Error("GitHub access token not found for user");
+  }
+
+  const response = await fetch(
+    `${GITHUB_REST_API}/repos/${owner}/${repo}/hooks`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({
+        name: "web",
+        active: true,
+        events: WEBHOOK_EVENTS,
+        config: {
+          url: webhookUrl,
+          content_type: "json",
+          secret: secret,
+          insecure_ssl: "0",
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error("Failed to create webhook:", response.status, errorData);
+    
+    if (response.status === 422) {
+      const existingWebhook = await findExistingWebhook(userId, owner, repo, webhookUrl);
+      if (existingWebhook) {
+        return existingWebhook;
+      }
+    }
+    
+    throw new Error(
+      `Failed to create webhook: ${response.status} - ${JSON.stringify(errorData)}`
+    );
+  }
+
+  return (await response.json()) as WebhookConfig;
+}
+
+async function findExistingWebhook(
+  userId: string,
+  owner: string,
+  repo: string,
+  webhookUrl: string
+): Promise<WebhookConfig | null> {
+  const accessToken = await getGithubToken(userId);
+
+  if (!accessToken) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${GITHUB_REST_API}/repos/${owner}/${repo}/hooks`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const webhooks = (await response.json()) as WebhookConfig[];
+  return webhooks.find((hook) => hook.url === webhookUrl) ?? null;
+}
+
+
+export async function deleteRepositoryWebhook(
+  userId: string,
+  owner: string,
+  repo: string,
+  webhookId: number
+): Promise<boolean> {
+  const accessToken = await getGithubToken(userId);
+
+  if (!accessToken) {
+    throw new Error("GitHub access token not found for user");
+  }
+
+  const response = await fetch(
+    `${GITHUB_REST_API}/repos/${owner}/${repo}/hooks/${webhookId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    }
+  );
+
+  return response.ok || response.status === 404;
+}
+
+function getWebhookUrl(): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL;
+  if (!baseUrl) {
+    throw new Error("NEXT_PUBLIC_APP_URL or BETTER_AUTH_URL environment variable is required for webhooks");
+  }
+  return `${baseUrl}/api/webhooks/github`;
+}
+
+
 export async function toggleRepositoryConnection(
   userId: string,
   githubId: number,
@@ -534,18 +667,95 @@ export async function toggleRepositoryConnection(
     openIssues: number;
     isPrivate: boolean;
   }
-): Promise<boolean> {
+): Promise<{ isConnected: boolean; webhookCreated?: boolean; error?: string }> {
   const existing = await db.repository.findFirst({
     where: { userId, githubId },
   });
 
   if (existing) {
-    const updated = await db.repository.update({
-      where: { id: existing.id },
-      data: { isConnected: !existing.isConnected },
-    });
-    return updated.isConnected;
+    const newConnectionState = !existing.isConnected;
+    const [owner, repo] = existing.fullName.split("/");
+
+    if (newConnectionState) {
+      try {
+        const webhookSecret = generateWebhookSecret();
+        const webhookUrl = getWebhookUrl();
+        const webhook = await createRepositoryWebhook(
+          userId,
+          owner,
+          repo,
+          webhookUrl,
+          webhookSecret
+        );
+
+        const updated = await db.repository.update({
+          where: { id: existing.id },
+          data: {
+            isConnected: true,
+            webhookId: webhook?.id ?? null,
+            webhookSecret: webhookSecret,
+          },
+        });
+
+        return { 
+          isConnected: updated.isConnected, 
+          webhookCreated: !!webhook 
+        };
+      } catch (error) {
+        console.error("Failed to create webhook:", error);
+        const updated = await db.repository.update({
+          where: { id: existing.id },
+          data: { isConnected: true },
+        });
+        return { 
+          isConnected: updated.isConnected, 
+          webhookCreated: false,
+          error: error instanceof Error ? error.message : "Failed to create webhook"
+        };
+      }
+    } else {
+      try {
+        if (existing.webhookId) {
+          await deleteRepositoryWebhook(userId, owner, repo, existing.webhookId);
+        }
+      } catch (error) {
+        console.error("Failed to delete webhook:", error);
+      }
+
+      const updated = await db.repository.update({
+        where: { id: existing.id },
+        data: {
+          isConnected: false,
+          webhookId: null,
+          webhookSecret: null,
+        },
+      });
+
+      return { isConnected: updated.isConnected };
+    }
   } else if (repoData) {
+    const [owner, repo] = repoData.fullName.split("/");
+    let webhookId: number | null = null;
+    let webhookSecret: string | null = null;
+    let webhookCreated = false;
+
+    try {
+      webhookSecret = generateWebhookSecret();
+      const webhookUrl = getWebhookUrl();
+      const webhook = await createRepositoryWebhook(
+        userId,
+        owner,
+        repo,
+        webhookUrl,
+        webhookSecret
+      );
+      webhookId = webhook?.id ?? null;
+      webhookCreated = !!webhook;
+    } catch (error) {
+      console.error("Failed to create webhook for new repo:", error);
+      webhookSecret = null;
+    }
+
     const created = await db.repository.create({
       data: {
         githubId,
@@ -561,10 +771,17 @@ export async function toggleRepositoryConnection(
         openIssues: repoData.openIssues,
         isPrivate: repoData.isPrivate,
         isConnected: true,
+        webhookId,
+        webhookSecret,
       },
     });
-    return created.isConnected;
+
+    return { 
+      isConnected: created.isConnected, 
+      webhookCreated,
+      error: webhookCreated ? undefined : "Failed to create webhook"
+    };
   }
 
-  return false;
+  return { isConnected: false };
 }
