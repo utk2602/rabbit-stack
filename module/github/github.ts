@@ -644,12 +644,32 @@ export async function deleteRepositoryWebhook(
   return response.ok || response.status === 404;
 }
 
+/**
+ * Check if webhook URL is a localhost URL that GitHub cannot reach
+ * ngrok URLs and other tunnel services should NOT be blocked
+ */
+function isLocalhostUrl(): boolean {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "";
+  // Only block actual localhost URLs, not tunnels like ngrok
+  return baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1");
+}
+
 function getWebhookUrl(): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL;
-  if (!baseUrl) {
-    throw new Error("NEXT_PUBLIC_APP_URL or BETTER_AUTH_URL environment variable is required for webhooks");
+  // Check for dedicated webhook URL first (for ngrok/tunnels)
+  const webhookBaseUrl = process.env.WEBHOOK_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL;
+  if (!webhookBaseUrl) {
+    throw new Error("WEBHOOK_URL, NEXT_PUBLIC_APP_URL or BETTER_AUTH_URL environment variable is required for webhooks");
   }
-  return `${baseUrl}/api/webhooks/github`;
+  return `${webhookBaseUrl}/api/webhooks/github`;
+}
+
+/**
+ * Check if webhooks can be created (not localhost)
+ */
+function canCreateWebhooks(): boolean {
+  const webhookUrl = process.env.WEBHOOK_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "";
+  // Can create webhooks if we have a public URL (not localhost)
+  return !webhookUrl.includes("localhost") && !webhookUrl.includes("127.0.0.1") && webhookUrl.length > 0;
 }
 
 
@@ -677,9 +697,28 @@ export async function toggleRepositoryConnection(
     const [owner, repo] = existing.fullName.split("/");
 
     if (newConnectionState) {
+      // Check if we can create webhooks (need public URL, not localhost)
+      if (!canCreateWebhooks()) {
+        console.log("[Webhook] Skipping webhook creation - no public URL configured");
+        console.log("[Webhook] To enable webhooks, set WEBHOOK_URL to your ngrok/public URL");
+        const updated = await db.repository.update({
+          where: { id: existing.id },
+          data: { 
+            isConnected: true,
+            webhookSecret: generateWebhookSecret(), // Store secret for later use
+          },
+        });
+        return { 
+          isConnected: updated.isConnected, 
+          webhookCreated: false,
+          error: "Set WEBHOOK_URL env variable to your ngrok URL to enable webhooks"
+        };
+      }
+
       try {
         const webhookSecret = generateWebhookSecret();
         const webhookUrl = getWebhookUrl();
+        console.log(`[Webhook] Creating webhook for ${owner}/${repo} at ${webhookUrl}`);
         const webhook = await createRepositoryWebhook(
           userId,
           owner,
@@ -736,24 +775,30 @@ export async function toggleRepositoryConnection(
   } else if (repoData) {
     const [owner, repo] = repoData.fullName.split("/");
     let webhookId: number | null = null;
-    let webhookSecret: string | null = null;
+    let webhookSecret: string | null = generateWebhookSecret();
     let webhookCreated = false;
+    let webhookError: string | undefined;
 
-    try {
-      webhookSecret = generateWebhookSecret();
-      const webhookUrl = getWebhookUrl();
-      const webhook = await createRepositoryWebhook(
-        userId,
-        owner,
-        repo,
-        webhookUrl,
-        webhookSecret
-      );
-      webhookId = webhook?.id ?? null;
-      webhookCreated = !!webhook;
-    } catch (error) {
-      console.error("Failed to create webhook for new repo:", error);
-      webhookSecret = null;
+    // In development mode, skip webhook creation (localhost not reachable by GitHub)
+    if (isDevelopmentMode()) {
+      console.log("[Dev Mode] Skipping webhook creation for new repo - localhost not reachable by GitHub");
+      webhookError = "Webhook skipped in development mode (localhost not reachable by GitHub)";
+    } else {
+      try {
+        const webhookUrl = getWebhookUrl();
+        const webhook = await createRepositoryWebhook(
+          userId,
+          owner,
+          repo,
+          webhookUrl,
+          webhookSecret
+        );
+        webhookId = webhook?.id ?? null;
+        webhookCreated = !!webhook;
+      } catch (error) {
+        console.error("Failed to create webhook for new repo:", error);
+        webhookError = error instanceof Error ? error.message : "Failed to create webhook";
+      }
     }
 
     const created = await db.repository.create({
@@ -779,7 +824,7 @@ export async function toggleRepositoryConnection(
     return { 
       isConnected: created.isConnected, 
       webhookCreated,
-      error: webhookCreated ? undefined : "Failed to create webhook"
+      error: webhookError
     };
   }
 

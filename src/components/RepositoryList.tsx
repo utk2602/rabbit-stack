@@ -128,7 +128,30 @@ export function RepositoryList() {
 
   const handleToggleConnection = (repo: Repository) => {
     const { isConnected, ...repoData } = repo;
-    toggleConnection.mutate({ githubId: repo.githubId, repoData });
+    toggleConnection.mutate(
+      { githubId: repo.githubId, repoData },
+      {
+        onSuccess: (data) => {
+          if (data.isConnected) {
+            if (data.webhookCreated) {
+              console.log(`Repository ${repo.fullName} connected with webhook successfully.`);
+            } else if (data.error) {
+              // In development mode, just log the message (localhost webhooks are expected to fail)
+              if (data.error.includes("development mode") || data.error.includes("localhost")) {
+                console.log(`[Dev Mode] ${repo.fullName} connected. ${data.error}`);
+              } else {
+                // Production webhook failure - show alert
+                alert(`Repository connected, but webhook creation failed: ${data.error}. Automatic code reviews may not work.`);
+              }
+            }
+          }
+        },
+        onError: (error) => {
+          console.error("Failed to toggle connection:", error);
+          alert("Failed to update repository connection. Please try again.");
+        }
+      }
+    );
   };
 
   const totalCount = data?.pages[0]?.totalCount ?? 0;

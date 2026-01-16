@@ -71,7 +71,7 @@ async function fetchConnectedRepositories(): Promise<ConnectedReposResponse> {
 async function toggleConnection(
   githubId: number,
   repoData: Omit<Repository, "isConnected">
-): Promise<{ isConnected: boolean }> {
+): Promise<{ isConnected: boolean; webhookCreated?: boolean; error?: string }> {
   const response = await fetch("/api/repositories", {
     method: "POST",
     headers: {
