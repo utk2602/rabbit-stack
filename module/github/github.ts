@@ -697,7 +697,6 @@ export async function toggleRepositoryConnection(
     const [owner, repo] = existing.fullName.split("/");
 
     if (newConnectionState) {
-      // Check if we can create webhooks (need public URL, not localhost)
       if (!canCreateWebhooks()) {
         console.log("[Webhook] Skipping webhook creation - no public URL configured");
         console.log("[Webhook] To enable webhooks, set WEBHOOK_URL to your ngrok/public URL");
@@ -705,7 +704,7 @@ export async function toggleRepositoryConnection(
           where: { id: existing.id },
           data: { 
             isConnected: true,
-            webhookSecret: generateWebhookSecret(), // Store secret for later use
+            webhookSecret: generateWebhookSecret(), 
           },
         });
         return { 
