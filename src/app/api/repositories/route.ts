@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../lib/auth";
 import { headers } from "next/headers";
 import { syncUserRepositories, toggleRepositoryConnection } from "../../../../module/github/github";
+import { inngest } from "../../../../inngest/client";
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -55,6 +56,18 @@ export async function POST(request: NextRequest) {
       githubId,
       repoData
     );
+
+    if (result.isConnected && repoData?.fullName) {
+      const [owner, repo] = repoData.fullName.split("/");
+      await inngest.send({
+        name: "repository.connected",
+        data: {
+          owner,
+          repo,
+          userId: session.user.id,
+        },
+      });
+    }
 
     return NextResponse.json({
       isConnected: result.isConnected,
