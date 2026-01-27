@@ -1,4 +1,5 @@
 import { db } from "../../lib/db";
+import { Octokit } from "octokit";
 import crypto from "crypto";
 
 const GITHUB_GRAPHQL_API = "https://api.github.com/graphql";
@@ -831,4 +832,58 @@ export async function toggleRepositoryConnection(
   }
 
   return { isConnected: false };
+}
+
+const BINARY_EXTENSIONS = /\.(png|jpg|jpeg|gif|bmp|tiff|webp|ico|mp4|mp3|mov|avi|mkv|exe|dll|bin|class|jar|zip|tar|gz|rar|7z|pdf|doc|docx|xls|xlsx|ppt|pptx|woff|woff2|ttf|eot|svg|lock|node)$/i;
+
+export interface RepoFile {
+  path: string;
+  content: string;
+}
+
+export async function getRepoFileContent(
+  token: string,
+  owner: string,
+  repo: string,
+  path: string = ""
+): Promise<RepoFile[]> {
+  const octokit = new Octokit({ auth: token });
+  const files: RepoFile[] = [];
+
+  async function fetchDirectory(dirPath: string) {
+    const { data } = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path: dirPath,
+    });
+
+    const items = Array.isArray(data) ? data : [data];
+
+    for (const item of items) {
+      if (item.type === "dir") {
+        await fetchDirectory(item.path);
+      } else if (item.type === "file") {
+        if (BINARY_EXTENSIONS.test(item.name)) continue;
+        if (item.size > 100000) continue;
+
+        try {
+          const { data: fileData } = await octokit.rest.repos.getContent({
+            owner,
+            repo,
+            path: item.path,
+          });
+
+          if ("content" in fileData && fileData.encoding === "base64") {
+            const content = Buffer.from(fileData.content, "base64").toString("utf-8");
+            files.push({ path: item.path, content });
+          }
+        } catch {
+          continue;
+        }
+      }
+    }
+  }
+
+  await fetchDirectory(path);
+  return files;
 }
