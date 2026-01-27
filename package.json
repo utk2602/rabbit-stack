@@ -9,10 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@pinecone-database/pinecone": "^6.1.4",
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^6.19.1",
     "@tanstack/react-query": "^5.90.16",
     "@types/pg": "^8.16.0",
+    "ai": "^6.0.54",
     "better-auth": "^1.4.8",
     "dotenv": "^17.2.3",
     "inngest": "^3.49.3",
