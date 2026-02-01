@@ -10,6 +10,10 @@ export const indexRepo = inngest.createFunction(
   async ({ event, step }) => {
     const { owner, repo, userId } = event.data;
 
+    if (!owner || !repo || !userId) {
+      return { success: false, error: `Missing required data: owner=${owner}, repo=${repo}, userId=${userId}` };
+    }
+
     const token = await step.run("get-token", async () => {
       const account = await db.account.findFirst({
         where: { userId, providerId: "github" },
@@ -23,8 +27,17 @@ export const indexRepo = inngest.createFunction(
     }
 
     const files = await step.run("fetch-files", async () => {
-      return getRepoFileContent(token, owner, repo);
+      try {
+        return await getRepoFileContent(token, owner, repo);
+      } catch (error) {
+        console.error(`Failed to fetch files for ${owner}/${repo}:`, error);
+        throw error;
+      }
     });
+
+    if (!files || files.length === 0) {
+      return { success: true, filesProcessed: 0, chunksIndexed: 0, message: "No files to index" };
+    }
 
     const indexed = await step.run("index-codebase", async () => {
       const allChunks = files.flatMap((file) =>

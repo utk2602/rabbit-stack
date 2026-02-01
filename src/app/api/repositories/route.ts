@@ -3,6 +3,7 @@ import { auth } from "../../../../lib/auth";
 import { headers } from "next/headers";
 import { syncUserRepositories, toggleRepositoryConnection } from "../../../../module/github/github";
 import { inngest } from "../../../../inngest/client";
+import { db } from "../../../../lib/db";
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -57,16 +58,32 @@ export async function POST(request: NextRequest) {
       repoData
     );
 
-    if (result.isConnected && repoData?.fullName) {
-      const [owner, repo] = repoData.fullName.split("/");
-      await inngest.send({
-        name: "repository.connected",
-        data: {
-          owner,
-          repo,
-          userId: session.user.id,
-        },
-      });
+    if (result.isConnected) {
+      let owner: string | undefined;
+      let repo: string | undefined;
+
+      if (repoData?.fullName) {
+        [owner, repo] = repoData.fullName.split("/");
+      } else {
+        const existingRepo = await db.repository.findFirst({
+          where: { githubId, userId: session.user.id },
+          select: { fullName: true },
+        });
+        if (existingRepo?.fullName) {
+          [owner, repo] = existingRepo.fullName.split("/");
+        }
+      }
+
+      if (owner && repo) {
+        await inngest.send({
+          name: "repository.connected",
+          data: {
+            owner,
+            repo,
+            userId: session.user.id,
+          },
+        });
+      }
     }
 
     return NextResponse.json({
