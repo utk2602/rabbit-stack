@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "../../../../../lib/db";
+import { inngest } from "../../../../../inngest/client";
 
 type WebhookEvent =
   | "push"
@@ -83,10 +84,13 @@ async function handlePushEvent(payload: WebhookPayload, repositoryId: string) {
 
 async function handlePullRequestEvent(
   payload: WebhookPayload,
-  repositoryId: string
+  repositoryId: string,
+  userId: string
 ) {
   const pr = payload.pull_request;
   if (!pr) return;
+
+  const [owner, repo] = payload.repository.full_name.split("/");
 
   console.log(
     `[Webhook] PR event: ${payload.action} - #${pr.number} "${pr.title}" on ${payload.repository.full_name}`
@@ -94,7 +98,24 @@ async function handlePullRequestEvent(
   switch (payload.action) {
     case "opened":
     case "synchronize":
-      console.log(`  → Ready for code review`);
+    case "reopened":
+      console.log(`  → Triggering AI code review...`);
+      
+      // Trigger the AI code review via Inngest
+      await inngest.send({
+        name: "pull_request.review_requested",
+        data: {
+          owner,
+          repo,
+          pullNumber: pr.number,
+          repositoryId,
+          userId,
+          headSha: pr.head.sha,
+          action: payload.action as "opened" | "synchronize" | "reopened",
+        },
+      });
+      
+      console.log(`  → Code review job queued for PR #${pr.number}`);
       break;
 
     case "closed":
@@ -200,7 +221,7 @@ export async function POST(request: NextRequest) {
         break;
 
       case "pull_request":
-        await handlePullRequestEvent(payload, repository.id);
+        await handlePullRequestEvent(payload, repository.id, repository.userId);
         break;
 
       case "pull_request_review":

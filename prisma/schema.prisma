@@ -68,28 +68,78 @@ model Test {
 }
 
 model repository {
-  id          String   @id @default(cuid())
-  githubId    Int      @unique
-  name        String
-  fullName    String
-  description String?
-  url         String
-  htmlUrl     String
-  language    String?
-  stars       Int      @default(0)
-  forks       Int      @default(0)
-  openIssues  Int      @default(0)
-  isPrivate   Boolean  @default(false)
-  isConnected Boolean  @default(false)
-  webhookId   Int?     // GitHub webhook ID for this repository
-  webhookSecret String? // Secret for verifying webhook payloads
-  userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String             @id @default(cuid())
+  githubId      Int                @unique
+  name          String
+  fullName      String
+  description   String?
+  url           String
+  htmlUrl       String
+  language      String?
+  stars         Int                @default(0)
+  forks         Int                @default(0)
+  openIssues    Int                @default(0)
+  isPrivate     Boolean            @default(false)
+  isConnected   Boolean            @default(false)
+  webhookId     Int?               // GitHub webhook ID for this repository
+  webhookSecret String?            // Secret for verifying webhook payloads
+  userId        String
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  user          user               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews       pullRequestReview[]
 
   @@index([userId])
   @@index([isConnected])
+}
+
+model pullRequestReview {
+  id           String          @id @default(cuid())
+  repositoryId String
+  pullNumber   Int
+  pullTitle    String
+  pullUrl      String
+  headSha      String
+  baseBranch   String
+  headBranch   String
+  author       String
+  status       String          @default("pending") // pending, in_progress, completed, failed
+  summary      String?         @db.Text
+  walkthrough  String?         @db.Text
+  strengths    String[]
+  issues       String[]
+  suggestions  String[]
+  poem         String?         @db.Text
+  diagram      String?         @db.Text             // Mermaid sequence diagram
+  rawMarkdown  String?         @db.Text             // Full raw response
+  tokensUsed   Int?
+  processingMs Int?                                 // Processing time in milliseconds
+  error        String?         @db.Text
+  postedToGithub Boolean       @default(false)
+  githubReviewId Int?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  repository   repository      @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  comments     reviewComment[]
+
+  @@unique([repositoryId, pullNumber, headSha])
+  @@index([repositoryId])
+  @@index([status])
+}
+
+model reviewComment {
+  id         String            @id @default(cuid())
+  reviewId   String
+  path       String
+  line       Int
+  body       String            @db.Text
+  severity   String            @default("info") // info, warning, error
+  postedToGithub Boolean       @default(false)
+  githubCommentId Int?
+  createdAt  DateTime          @default(now())
+  review     pullRequestReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
 }
 
 model settings {

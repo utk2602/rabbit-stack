@@ -887,3 +887,255 @@ export async function getRepoFileContent(
   await fetchDirectory(path);
   return files;
 }
+
+// ============================================================================
+// Pull Request API Functions for Code Review
+// ============================================================================
+
+export interface PullRequestDetails {
+  number: number;
+  title: string;
+  body: string | null;
+  state: string;
+  htmlUrl: string;
+  headSha: string;
+  headRef: string;
+  baseRef: string;
+  author: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PullRequestFile {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  changes: number;
+  patch?: string;
+  blobUrl: string;
+  rawUrl: string;
+}
+
+/**
+ * Get pull request details
+ */
+export async function getPullRequestDetails(
+  token: string,
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<PullRequestDetails> {
+  const octokit = new Octokit({ auth: token });
+
+  const { data } = await octokit.rest.pulls.get({
+    owner,
+    repo,
+    pull_number: pullNumber,
+  });
+
+  return {
+    number: data.number,
+    title: data.title,
+    body: data.body,
+    state: data.state,
+    htmlUrl: data.html_url,
+    headSha: data.head.sha,
+    headRef: data.head.ref,
+    baseRef: data.base.ref,
+    author: data.user?.login ?? "unknown",
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
+/**
+ * Get list of files changed in a pull request with patches
+ */
+export async function getPullRequestFiles(
+  token: string,
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<PullRequestFile[]> {
+  const octokit = new Octokit({ auth: token });
+
+  const { data } = await octokit.rest.pulls.listFiles({
+    owner,
+    repo,
+    pull_number: pullNumber,
+    per_page: 100,
+  });
+
+  return data.map((file) => ({
+    filename: file.filename,
+    status: file.status,
+    additions: file.additions,
+    deletions: file.deletions,
+    changes: file.changes,
+    patch: file.patch,
+    blobUrl: file.blob_url,
+    rawUrl: file.raw_url,
+  }));
+}
+
+/**
+ * Get the full diff of a pull request
+ */
+export async function getPullRequestDiff(
+  token: string,
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<string> {
+  const octokit = new Octokit({ auth: token });
+
+  const { data } = await octokit.rest.pulls.get({
+    owner,
+    repo,
+    pull_number: pullNumber,
+    mediaType: {
+      format: "diff",
+    },
+  });
+
+  // When using diff format, data is a string
+  return data as unknown as string;
+}
+
+export interface CreateReviewComment {
+  path: string;
+  line: number;
+  body: string;
+}
+
+export interface CreateReviewResult {
+  reviewId: number;
+  htmlUrl: string;
+}
+
+/**
+ * Create a pull request review with optional inline comments
+ */
+export async function createPullRequestReview(
+  token: string,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  body: string,
+  comments: CreateReviewComment[] = [],
+  commitId?: string
+): Promise<CreateReviewResult> {
+  const octokit = new Octokit({ auth: token });
+
+  // Get the latest commit if not provided
+  let commitSha = commitId;
+  if (!commitSha) {
+    const { data: pr } = await octokit.rest.pulls.get({
+      owner,
+      repo,
+      pull_number: pullNumber,
+    });
+    commitSha = pr.head.sha;
+  }
+
+  // Create the review
+  const { data } = await octokit.rest.pulls.createReview({
+    owner,
+    repo,
+    pull_number: pullNumber,
+    commit_id: commitSha,
+    body,
+    event: "COMMENT", // APPROVE, REQUEST_CHANGES, or COMMENT
+    comments: comments.map((c) => ({
+      path: c.path,
+      line: c.line,
+      body: c.body,
+    })),
+  });
+
+  return {
+    reviewId: data.id,
+    htmlUrl: data.html_url,
+  };
+}
+
+/**
+ * Post a simple comment on a pull request (not a review)
+ */
+export async function createPullRequestComment(
+  token: string,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  body: string
+): Promise<{ commentId: number; htmlUrl: string }> {
+  const octokit = new Octokit({ auth: token });
+
+  const { data } = await octokit.rest.issues.createComment({
+    owner,
+    repo,
+    issue_number: pullNumber,
+    body,
+  });
+
+  return {
+    commentId: data.id,
+    htmlUrl: data.html_url,
+  };
+}
+
+// ============================================================================
+// Bulk Operations
+// ============================================================================
+
+/**
+ * Disconnect all connected repositories for a user
+ * Removes webhooks and marks repos as disconnected
+ */
+export async function disconnectAllRepositories(
+  userId: string
+): Promise<{ disconnected: number; errors: string[] }> {
+  const repositories = await db.repository.findMany({
+    where: {
+      userId,
+      isConnected: true,
+    },
+  });
+
+  let disconnected = 0;
+  const errors: string[] = [];
+
+  for (const repo of repositories) {
+    try {
+      const [owner, repoName] = repo.fullName.split("/");
+
+      // Delete webhook if exists
+      if (repo.webhookId) {
+        try {
+          await deleteRepositoryWebhook(userId, owner, repoName, repo.webhookId);
+        } catch (webhookError) {
+          console.error(`Failed to delete webhook for ${repo.fullName}:`, webhookError);
+          // Continue even if webhook deletion fails
+        }
+      }
+
+      // Update repository
+      await db.repository.update({
+        where: { id: repo.id },
+        data: {
+          isConnected: false,
+          webhookId: null,
+          webhookSecret: null,
+        },
+      });
+
+      disconnected++;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      errors.push(`${repo.fullName}: ${message}`);
+    }
+  }
+
+  return { disconnected, errors };
+}

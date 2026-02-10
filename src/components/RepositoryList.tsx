@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRepositories, useToggleRepositoryConnection, Repository, RepositoriesPage } from "@/hooks/useRepositories";
+import { toast } from "sonner";
 import { 
   Search, 
   Filter, 
@@ -14,7 +15,8 @@ import {
   Check,
   Plus,
   X,
-  ChevronDown
+  ChevronDown,
+  Trash2
 } from "lucide-react";
 
 type FilterType = "all" | "connected" | "not-connected" | "public" | "private";
@@ -128,33 +130,97 @@ export function RepositoryList() {
 
   const handleToggleConnection = (repo: Repository) => {
     const { isConnected, ...repoData } = repo;
+    const action = isConnected ? "Disconnecting" : "Connecting";
+    
+    toast.loading(`${action} ${repo.fullName}...`, { id: `toggle-${repo.githubId}` });
+    
     toggleConnection.mutate(
       { githubId: repo.githubId, repoData },
       {
         onSuccess: (data) => {
           if (data.isConnected) {
             if (data.webhookCreated) {
-              console.log(`Repository ${repo.fullName} connected with webhook successfully.`);
+              toast.success(`Connected ${repo.fullName}`, {
+                id: `toggle-${repo.githubId}`,
+                description: "Webhook created successfully. AI code reviews are enabled!",
+              });
             } else if (data.error) {
-              // In development mode, just log the message (localhost webhooks are expected to fail)
-              if (data.error.includes("development mode") || data.error.includes("localhost")) {
-                console.log(`[Dev Mode] ${repo.fullName} connected. ${data.error}`);
+              // In development mode, show info toast
+              if (data.error.includes("development mode") || data.error.includes("localhost") || data.error.includes("WEBHOOK_URL")) {
+                toast.success(`Connected ${repo.fullName}`, {
+                  id: `toggle-${repo.githubId}`,
+                  description: "Set WEBHOOK_URL for automatic code reviews.",
+                });
               } else {
-                // Production webhook failure - show alert
-                alert(`Repository connected, but webhook creation failed: ${data.error}. Automatic code reviews may not work.`);
+                // Production webhook failure
+                toast.warning(`Connected ${repo.fullName}`, {
+                  id: `toggle-${repo.githubId}`,
+                  description: `Webhook creation failed: ${data.error}`,
+                });
               }
+            } else {
+              toast.success(`Connected ${repo.fullName}`, {
+                id: `toggle-${repo.githubId}`,
+              });
             }
+          } else {
+            toast.success(`Disconnected ${repo.fullName}`, {
+              id: `toggle-${repo.githubId}`,
+              description: "Webhook removed and AI reviews disabled.",
+            });
           }
         },
         onError: (error) => {
           console.error("Failed to toggle connection:", error);
-          alert("Failed to update repository connection. Please try again.");
+          toast.error(`Failed to ${action.toLowerCase()} ${repo.fullName}`, {
+            id: `toggle-${repo.githubId}`,
+            description: error instanceof Error ? error.message : "Please try again.",
+          });
         }
       }
     );
   };
 
+  // Disconnect all repositories
+  const handleDisconnectAll = async () => {
+    const connectedRepos = allRepos.filter((r) => r.isConnected);
+    if (connectedRepos.length === 0) {
+      toast.info("No connected repositories to disconnect.");
+      return;
+    }
+
+    toast.loading(`Disconnecting ${connectedRepos.length} repositories...`, { id: "disconnect-all" });
+
+    try {
+      const response = await fetch("/api/repositories/connected/all", {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("All repositories disconnected", {
+          id: "disconnect-all",
+          description: `Successfully disconnected ${data.disconnected} repositories.`,
+        });
+        // Refetch repositories to update the UI
+        window.location.reload();
+      } else {
+        toast.error("Failed to disconnect repositories", {
+          id: "disconnect-all",
+          description: data.error || "Please try again.",
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to disconnect repositories", {
+        id: "disconnect-all",
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    }
+  };
+
   const totalCount = data?.pages[0]?.totalCount ?? 0;
+  const connectedCount = allRepos.filter((r) => r.isConnected).length;
 
   if (isLoading) {
     return (
@@ -182,9 +248,18 @@ export function RepositoryList() {
         <div>
           <h2 className="text-xl font-semibold text-white">Your Repositories</h2>
           <p className="text-sm text-zinc-400 mt-1">
-            {totalCount} total repositories • {filteredRepos.length} shown
+            {totalCount} total repositories • {connectedCount} connected • {filteredRepos.length} shown
           </p>
         </div>
+        {connectedCount > 0 && (
+          <button
+            onClick={handleDisconnectAll}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 hover:border-red-500/30 transition-all"
+          >
+            <Trash2 className="w-4 h-4" />
+            Disconnect All ({connectedCount})
+          </button>
+        )}
       </div>
 
       {/* Search & Filters */}

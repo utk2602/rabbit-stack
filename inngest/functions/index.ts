@@ -4,6 +4,9 @@ import { getRepoFileContent } from "../../module/github/github";
 import { chunkCode, generateEmbeddings, prepareCodeForEmbedding } from "../../lib/embeddings";
 import { pineconeIndex } from "../../lib/pinecone";
 
+// Re-export the PR review function
+export { reviewPullRequest } from "./reviewPullRequest";
+
 export const indexRepo = inngest.createFunction(
   { id: "index-repo" },
   { event: "repository.connected" },
