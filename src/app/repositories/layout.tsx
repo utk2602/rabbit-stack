@@ -11,7 +11,9 @@ export default async function RepositoriesLayout({
   const profile = await getGithubProfile(session.user.id).catch(() => null);
 
   return (
+    
     <div className="flex min-h-screen bg-background text-foreground">
+      
       <Sidebar profile={profile} />
       <main className="flex-1 w-full overflow-y-auto max-h-screen">
         {children}

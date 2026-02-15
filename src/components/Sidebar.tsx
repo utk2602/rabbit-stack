@@ -6,13 +6,13 @@ import { useState } from "react";
 import { 
   LayoutDashboard, 
   FolderGit2, 
-  Settings, 
   ChevronLeft, 
   ChevronRight,
   LogOut,
   GitPullRequestDraft
 } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
+import { toast } from "sonner";
 
 interface SidebarProps {
   profile?: {
@@ -32,28 +32,27 @@ export function Sidebar({ profile }: SidebarProps) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/repositories", label: "Repositories", icon: FolderGit2 },
     { href: "/dashboard/reviews", label: "Reviews", icon: GitPullRequestDraft },
-    { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
 
   return (
     <aside 
-      className={`relative flex flex-col border-r border-border bg-card/50 backdrop-blur-xl transition-all duration-300 h-screen sticky top-0 ${
+      className={`flex flex-col border-r border-border bg-card/50 backdrop-blur-xl transition-all duration-300 h-screen sticky top-0 ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
       <div className="flex items-center justify-between p-4 h-16 border-b border-border">
         {!isCollapsed && (
              <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">R</span>
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-xl">R</span>
               </div>
               <span className="font-bold text-lg tracking-tight">Rabbit Stack</span>
             </Link>
         )}
         {isCollapsed && (
              <Link href="/dashboard" className="flex items-center justify-center w-full">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">R</span>
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-xl">R</span>
               </div>
             </Link>
         )}
@@ -77,7 +76,7 @@ export function Sidebar({ profile }: SidebarProps) {
               href={link.href}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                 isActive 
-                  ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20" 
+                  ? "bg-primary/10 text-primary border border-primary/20" 
                   : "text-muted-foreground hover:text-foreground hover:bg-accent"
               } ${isCollapsed ? "justify-center" : ""}`}
               title={isCollapsed ? link.label : undefined}
@@ -109,7 +108,10 @@ export function Sidebar({ profile }: SidebarProps) {
             )}
             {!isCollapsed && (
               <button
-                onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/"; } } })}
+                onClick={() => {
+                  toast.success("Signed out successfully");
+                  signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/"; } } });
+                }}
                 className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
                 title="Sign out"
               >

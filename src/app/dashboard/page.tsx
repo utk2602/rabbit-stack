@@ -1,6 +1,7 @@
 import { requireAuth } from "../../../lib/auth-utils";
 import { getUserContributionsByUserId, getContributionStatsByUserId, getMonthlyActivityStatsByUserId, getGithubProfile } from "../../../module/github/github";
 import { ContributionGraph } from "../../components/ContributionGraph";
+import { WaveCard } from "../../components/WaveCard";
 import { 
   GitCommit, 
   GitPullRequest, 
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
           </p>
           <Link 
             href="/api/auth/signin"
-            className="inline-block bg-orange-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors"
+            className="inline-block bg-primary text-primary-foreground px-6 py-2 rounded-lg font-medium hover:bg-primary/80 transition-colors"
           >
             Connect GitHub Account
           </Link>
@@ -50,7 +51,7 @@ export default async function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">{profile.name || profile.login}</span>
+            Welcome back, <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-amber-500">{profile.name || profile.login}</span>
           </h1>
           <p className="text-muted-foreground">Here's what's happening with your code reviews and repositories.</p>
         </div>
@@ -76,7 +77,7 @@ export default async function DashboardPage() {
           <StatCard 
             title="Repositories" 
             value={stats.totalRepositories} 
-            icon={<Code2 className="w-5 h-5 text-orange-400" />}
+            icon={<Code2 className="w-5 h-5 text-primary" />}
           />
         </div>
 
@@ -88,7 +89,7 @@ export default async function DashboardPage() {
                   <TrendingUp className="w-5 h-5 text-muted-foreground" />
                   Contribution Activity
                 </h2>
-                <select className="bg-secondary border border-border text-sm rounded-lg px-3 py-1 text-muted-foreground outline-none focus:border-orange-500">
+                <select className="bg-secondary border border-border text-sm rounded-lg px-3 py-1 text-muted-foreground outline-none focus:border-primary">
                   <option>Last 12 Months</option>
                 </select>
               </div>
@@ -172,7 +173,7 @@ export default async function DashboardPage() {
                         <div className="text-xs text-muted-foreground mb-1">Activity</div>
                         <div className="flex gap-0.5">
                           {[...Array(5)].map((_, j) => (
-                            <div key={j} className={`w-1 h-4 rounded-full ${j < 3 ? 'bg-emerald-500/50' : 'bg-secondary'}`} />
+                            <div key={j} className={`w-1 h-4 rounded-full ${j < 3 ? 'bg-primary/50' : 'bg-secondary'}`} />
                           ))}
                         </div>
                       </div>
@@ -183,6 +184,46 @@ export default async function DashboardPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Sine Wave Activity Graphs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <WaveCard
+                title="Code Velocity"
+                subtitle="Lines changed per day"
+                color="#ffe0c2"
+                waves={3}
+                amplitude={25}
+                frequency={0.02}
+                height={90}
+              />
+              <WaveCard
+                title="Review Throughput"
+                subtitle="PRs reviewed over time"
+                color="#4ade80"
+                waves={2}
+                amplitude={30}
+                frequency={0.015}
+                height={90}
+              />
+              <WaveCard
+                title="Issue Resolution"
+                subtitle="Avg resolution time trend"
+                color="#60a5fa"
+                waves={3}
+                amplitude={20}
+                frequency={0.025}
+                height={90}
+              />
+              <WaveCard
+                title="Commit Frequency"
+                subtitle="Commits per hour pattern"
+                color="#c084fc"
+                waves={2}
+                amplitude={28}
+                frequency={0.018}
+                height={90}
+              />
             </div>
           </div>
 
@@ -211,7 +252,7 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/5 border border-orange-500/20 rounded-xl p-6 relative overflow-hidden">
+            <div className="bg-linear-to-br from-primary/10 to-amber-500/5 border border-primary/20 rounded-xl p-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10">
                 <Code2 className="w-24 h-24" />
               </div>

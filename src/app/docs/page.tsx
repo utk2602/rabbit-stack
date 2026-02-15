@@ -74,7 +74,7 @@ export default function DocsPage() {
             </Link>
             <div className="w-px h-5 bg-border" />
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-orange-500 rounded flex items-center justify-center">
+              <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
                 <span className="text-white font-bold text-xs">R</span>
               </div>
               <span className="font-semibold text-sm">Documentation</span>
@@ -94,7 +94,7 @@ export default function DocsPage() {
                 onClick={() => setActiveSection(s.id)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeSection === s.id
-                    ? "bg-orange-500/10 text-orange-500"
+                    ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent"
                 }`}
               >
@@ -113,8 +113,8 @@ export default function DocsPage() {
             <p className="text-lg text-muted-foreground mb-6">
               Rabbit Stack is an AI-powered code review bot that automatically reviews every pull request on your connected GitHub repositories. It uses Google Gemini for code understanding and generates comprehensive, structured reviews posted directly to GitHub.
             </p>
-            <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-6">
-              <h3 className="font-semibold text-orange-500 mb-2">Tagline</h3>
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-6">
+              <h3 className="font-semibold text-primary mb-2">Tagline</h3>
               <p className="text-lg font-mono">
                 &ldquo;Your code moves fast. Your reviews should move faster.&rdquo;
               </p>
@@ -128,31 +128,31 @@ export default function DocsPage() {
               {[
                 {
                   step: "1",
-                  icon: <GitPullRequest className="w-5 h-5 text-orange-400" />,
+                  icon: <GitPullRequest className="w-5 h-5 text-primary" />,
                   title: "A Pull Request is opened",
                   desc: "When a PR is opened, synced, or reopened on a connected repo, GitHub sends a webhook to Rabbit Stack.",
                 },
                 {
                   step: "2",
-                  icon: <Webhook className="w-5 h-5 text-orange-400" />,
+                  icon: <Webhook className="w-5 h-5 text-primary" />,
                   title: "Webhook triggers Inngest",
                   desc: "The webhook handler verifies the payload signature and dispatches a `pull_request.review_requested` event to Inngest for reliable background processing.",
                 },
                 {
                   step: "3",
-                  icon: <Database className="w-5 h-5 text-orange-400" />,
+                  icon: <Database className="w-5 h-5 text-primary" />,
                   title: "RAG context retrieval",
                   desc: "Rabbit Stack generates embeddings for the changed files and queries Pinecone to fetch the most relevant codebase context, so the review understands your entire repo — not just the diff.",
                 },
                 {
                   step: "4",
-                  icon: <Bot className="w-5 h-5 text-orange-400" />,
+                  icon: <Bot className="w-5 h-5 text-primary" />,
                   title: "AI generates review",
                   desc: "Google Gemini 1.5 Pro generates a comprehensive review with walkthrough, sequence diagram, strengths, issues, suggestions, and a poem. Gemini Flash generates inline comments.",
                 },
                 {
                   step: "5",
-                  icon: <Code2 className="w-5 h-5 text-orange-400" />,
+                  icon: <Code2 className="w-5 h-5 text-primary" />,
                   title: "Review posted to GitHub",
                   desc: "The review is posted directly to GitHub as a pull request review with line-by-line inline comments — visible right in your PR.",
                 },
@@ -161,7 +161,7 @@ export default function DocsPage() {
                   key={s.step}
                   className="flex gap-4 p-4 rounded-xl border border-border bg-card"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     {s.icon}
                   </div>
                   <div>
@@ -217,32 +217,32 @@ export default function DocsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 {
-                  icon: <Zap className="w-4 h-4 text-orange-400" />,
+                  icon: <Zap className="w-4 h-4 text-primary" />,
                   title: "Instant Reviews",
                   desc: "Reviews generated in < 30 seconds",
                 },
                 {
-                  icon: <Search className="w-4 h-4 text-orange-400" />,
+                  icon: <Search className="w-4 h-4 text-primary" />,
                   title: "RAG-Powered",
                   desc: "Full codebase context via Pinecone embeddings",
                 },
                 {
-                  icon: <Shield className="w-4 h-4 text-orange-400" />,
+                  icon: <Shield className="w-4 h-4 text-primary" />,
                   title: "Security Scanning",
                   desc: "Auto-detects vulnerabilities and auth issues",
                 },
                 {
-                  icon: <Code2 className="w-4 h-4 text-orange-400" />,
+                  icon: <Code2 className="w-4 h-4 text-primary" />,
                   title: "Inline Comments",
                   desc: "Line-by-line feedback with severity levels",
                 },
                 {
-                  icon: <Bot className="w-4 h-4 text-orange-400" />,
+                  icon: <Bot className="w-4 h-4 text-primary" />,
                   title: "Walkthrough & Diagrams",
                   desc: "Mermaid sequence diagrams with every review",
                 },
                 {
-                  icon: <Settings className="w-4 h-4 text-orange-400" />,
+                  icon: <Settings className="w-4 h-4 text-primary" />,
                   title: "Configurable",
                   desc: "Themes, notifications, and privacy settings",
                 },

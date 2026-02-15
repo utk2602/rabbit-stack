@@ -136,7 +136,7 @@ export function ReviewActivityClient({ reviews }: ReviewActivityClientProps) {
             placeholder="Search by PR title, repo, or author..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
           />
         </div>
 
@@ -190,7 +190,7 @@ function StatPill({
       onClick={onClick}
       className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${
         active
-          ? "bg-orange-500/10 border-orange-500/30"
+          ? "bg-primary/10 border-primary/30"
           : "bg-card/30 border-border hover:border-accent"
       }`}
     >
@@ -301,7 +301,7 @@ function ReviewCard({
             </span>
             {review.processingMs && (
               <span className="flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 text-orange-500" />
+                <Zap className="w-3.5 h-3.5 text-primary" />
                 {(review.processingMs / 1000).toFixed(1)}s processing
               </span>
             )}
@@ -321,7 +321,7 @@ function ReviewCard({
               href={review.pullUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-orange-500 hover:underline ml-auto"
+              className="flex items-center gap-1 text-primary hover:underline ml-auto"
             >
               View PR <ExternalLink className="w-3 h-3" />
             </a>
@@ -446,8 +446,8 @@ function ReviewCard({
 
           {/* Poem */}
           {review.poem && (
-            <div className="bg-secondary/30 rounded-lg p-4 border-l-2 border-orange-500">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-orange-500 mb-2">
+            <div className="bg-secondary/30 rounded-lg p-4 border-l-2 border-primary">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">
                 Review Poem
               </h4>
               <p className="text-sm italic text-muted-foreground whitespace-pre-wrap">

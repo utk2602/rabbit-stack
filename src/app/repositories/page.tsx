@@ -20,7 +20,7 @@ export default async function RepositoriesPage() {
           </p>
           <Link 
             href="/api/auth/signin"
-            className="inline-block bg-orange-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors"
+            className="inline-block bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/80 transition-colors"
           >
             Connect GitHub Account
           </Link>

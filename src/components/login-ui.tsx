@@ -47,7 +47,7 @@ export const LoginUI = ({ onClose }: LoginUIProps) => {
           <div className="w-full max-w-md mx-auto space-y-8">
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
                   <span className="text-white font-bold text-xl">R</span>
                 </div>
                 <span className="font-bold text-xl text-white tracking-tight">Rabbit Stack</span>
@@ -89,7 +89,7 @@ export const LoginUI = ({ onClose }: LoginUIProps) => {
                 <span>We only request read access to your repositories</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-500">
-                <Zap className="w-4 h-4 text-orange-500 shrink-0" />
+                <Zap className="w-4 h-4 text-primary shrink-0" />
                 <span>Automated reviews on every pull request</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-500">
@@ -106,7 +106,7 @@ export const LoginUI = ({ onClose }: LoginUIProps) => {
 
         {/* Right Side - Visual */}
         <div className="hidden lg:flex w-1/2 relative items-center justify-center p-8">
-          <div className="relative w-full h-full rounded-2xl overflow-hidden bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500 flex flex-col justify-between p-8">
+          <div className="relative w-full h-full rounded-2xl overflow-hidden bg-gradient-to-br from-primary/80 via-primary to-amber-500 flex flex-col justify-between p-8">
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>

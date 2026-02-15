@@ -12,6 +12,7 @@ import {
 import { FloatingPaths } from "@/components/floating-paths";
 import { ChevronLeftIcon, AtSignIcon, Loader2 } from "lucide-react";
 import { signIn, signUp } from "@/lib/auth-client";
+import { toast } from "sonner";
 
 export function AuthPage() {
 	const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +32,9 @@ export function AuthPage() {
 			});
 		} catch (err: any) {
 			console.error("GitHub sign-in error:", err);
-			setError(err.message || "Failed to sign in with GitHub");
+			const msg = err.message || "Failed to sign in with GitHub";
+			setError(msg);
+			toast.error(msg);
 			setIsLoading(false);
 		}
 	};
@@ -40,6 +43,7 @@ export function AuthPage() {
 		e.preventDefault();
 		if (!email || !password) {
 			setError("Please enter both email and password");
+			toast.error("Please enter both email and password");
 			return;
 		}
 		setIsLoading(true);
@@ -52,22 +56,30 @@ export function AuthPage() {
 					name: name || email.split("@")[0],
 				});
 				if (result.error) {
-					setError(result.error.message || "Failed to create account");
+					const msg = result.error.message || "Failed to create account";
+					setError(msg);
+					toast.error(msg);
 					setIsLoading(false);
 					return;
 				}
+				toast.success("Account created! Redirecting...");
 			} else {
 				const result = await signIn.email({ email, password });
 				if (result.error) {
-					setError(result.error.message || "Failed to sign in");
+					const msg = result.error.message || "Failed to sign in";
+					setError(msg);
+					toast.error(msg);
 					setIsLoading(false);
 					return;
 				}
+				toast.success("Signed in successfully!");
 			}
 			window.location.href = "/dashboard";
 		} catch (err: any) {
 			console.error("Email auth error:", err);
-			setError(err.message || "Authentication failed");
+			const msg = err.message || "Authentication failed";
+			setError(msg);
+			toast.error(msg);
 			setIsLoading(false);
 		}
 	};
@@ -75,7 +87,7 @@ export function AuthPage() {
 	return (
 		<main className="relative md:h-screen md:overflow-hidden lg:grid lg:grid-cols-2">
 			<div className="relative hidden h-full flex-col border-r border-border bg-secondary p-10 lg:flex dark:bg-secondary/20">
-				<div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+				<div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-background" />
 				<Logo className="mr-auto h-5 relative z-10" />
 
 				<div className="z-10 mt-auto">

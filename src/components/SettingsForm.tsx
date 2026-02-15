@@ -95,7 +95,7 @@ export function SettingsForm({ initialSettings, githubProfile }: SettingsFormPro
                    {githubProfile ? (
                        <span className="bg-green-500/10 text-green-600 dark:text-green-400 px-3 py-1 rounded-full text-xs font-medium border border-green-500/20">Active</span>
                    ) : (
-                       <a href="/api/auth/signin" className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors">Connect</a>
+                       <a href="/api/auth/signin" className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors">Connect</a>
                    )}
                 </div>
             </div>
@@ -112,7 +112,7 @@ export function SettingsForm({ initialSettings, githubProfile }: SettingsFormPro
       {/* OpenAI API Key */}
       <section className="space-y-4">
         <div className="flex items-center gap-2 text-xl font-semibold border-b border-border pb-2">
-          <Key className="w-5 h-5 text-orange-500" />
+          <Key className="w-5 h-5 text-primary" />
           <h2>API Keys</h2>
         </div>
         
@@ -120,7 +120,7 @@ export function SettingsForm({ initialSettings, githubProfile }: SettingsFormPro
           <p className="text-sm text-muted-foreground">
             Your OpenAI API key is used for generating embeddings (RAG) to give the AI full codebase context during reviews.
             Get your key at{" "}
-            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline">
+            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
               platform.openai.com
             </a>
           </p>
@@ -130,7 +130,7 @@ export function SettingsForm({ initialSettings, githubProfile }: SettingsFormPro
               value={settings.openaiApiKey || ""}
               onChange={(e) => handleInputChange("openaiApiKey", e.target.value || null)}
               placeholder="sk-proj-..."
-              className="w-full bg-secondary border border-border rounded-lg px-4 py-3 pr-12 font-mono text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
+              className="w-full bg-secondary border border-border rounded-lg px-4 py-3 pr-12 font-mono text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
             />
             <button
               type="button"
@@ -159,7 +159,7 @@ export function SettingsForm({ initialSettings, githubProfile }: SettingsFormPro
             <select
               value={settings.language}
               onChange={(e) => handleInputChange("language", e.target.value)}
-              className="w-full bg-secondary border border-border rounded-lg px-4 py-3 focus:outline-none focus:border-orange-500 transition-colors"
+              className="w-full bg-secondary border border-border rounded-lg px-4 py-3 focus:outline-none focus:border-primary transition-colors"
             >
               {LANGUAGES.map((lang: { code: string; name: string }) => (
                 <option key={lang.code} value={lang.code}>
@@ -183,7 +183,7 @@ export function SettingsForm({ initialSettings, githubProfile }: SettingsFormPro
           <select
             value={settings.timezone}
             onChange={(e) => handleInputChange("timezone", e.target.value)}
-            className="w-full bg-secondary border border-border rounded-lg px-4 py-3 focus:outline-none focus:border-orange-500 transition-colors"
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-3 focus:outline-none focus:border-primary transition-colors"
           >
             {TIMEZONES.map((tz: string) => (
               <option key={tz} value={tz}>
@@ -226,7 +226,7 @@ export function SettingsForm({ initialSettings, githubProfile }: SettingsFormPro
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 bg-primary hover:bg-primary/80 text-white px-6 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? <RotateCcw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Save Changes
@@ -254,7 +254,7 @@ function ToggleCard({ title, desc, checked, onChange }: { title: string; desc: s
       </div>
       <label className="relative inline-flex items-center cursor-pointer">
         <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only peer" />
-        <div className="w-11 h-6 bg-secondary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+        <div className="w-11 h-6 bg-secondary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
       </label>
     </div>
   );

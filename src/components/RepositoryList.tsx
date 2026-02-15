@@ -26,22 +26,22 @@ const LANGUAGE_COLORS: Record<string, string> = {
   TypeScript: "bg-blue-500",
   JavaScript: "bg-yellow-400",
   Python: "bg-green-500",
-  Java: "bg-orange-500",
+  Java: "bg-primary",
   Go: "bg-cyan-500",
-  Rust: "bg-orange-600",
+  Rust: "bg-primary/80",
   Ruby: "bg-red-500",
   PHP: "bg-indigo-500",
   "C#": "bg-purple-500",
   "C++": "bg-pink-500",
   C: "bg-gray-500",
-  Swift: "bg-orange-400",
+  Swift: "bg-primary/60",
   Kotlin: "bg-purple-400",
   Dart: "bg-blue-400",
   HTML: "bg-red-400",
   CSS: "bg-blue-300",
   Shell: "bg-green-400",
   Vue: "bg-emerald-500",
-  Svelte: "bg-orange-500",
+  Svelte: "bg-primary",
 };
 
 export function RepositoryList() {
@@ -225,7 +225,7 @@ export function RepositoryList() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
         <span className="ml-3 text-muted-foreground">Loading repositories...</span>
       </div>
     );
@@ -272,7 +272,7 @@ export function RepositoryList() {
             placeholder="Search repositories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
           />
           {searchQuery && (
             <button
@@ -310,7 +310,7 @@ export function RepositoryList() {
                       setShowFilterDropdown(false);
                     }}
                     className={`w-full px-4 py-2 text-left text-sm hover:bg-accent transition-colors flex items-center justify-between ${
-                      filter === f ? "text-orange-500" : "text-foreground"
+                      filter === f ? "text-primary" : "text-foreground"
                     }`}
                   >
                     <span className="capitalize">{f.replace("-", " ")}</span>
@@ -327,7 +327,7 @@ export function RepositoryList() {
           <select
             value={languageFilter || ""}
             onChange={(e) => setLanguageFilter(e.target.value || null)}
-            className="px-4 py-2.5 bg-secondary border border-border rounded-lg text-muted-foreground focus:outline-none focus:border-orange-500 transition-colors"
+            className="px-4 py-2.5 bg-secondary border border-border rounded-lg text-muted-foreground focus:outline-none focus:border-primary transition-colors"
           >
             <option value="">All Languages</option>
             {languages.map((lang) => (
@@ -400,7 +400,7 @@ function RepositoryCard({ repo, onToggleConnection, isToggling }: RepositoryCard
               href={repo.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium hover:text-orange-500 transition-colors truncate"
+              className="font-medium hover:text-primary transition-colors truncate"
             >
               {repo.fullName}
             </a>
@@ -438,7 +438,7 @@ function RepositoryCard({ repo, onToggleConnection, isToggling }: RepositoryCard
           disabled={isToggling}
           className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
             repo.isConnected
-              ? "bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 hover:bg-orange-500/30"
+              ? "bg-primary/20 text-primary text-primary border border-primary/30 hover:bg-primary/30"
               : "bg-secondary border border-border hover:border-accent hover:bg-accent"
           }`}
         >

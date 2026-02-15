@@ -23,10 +23,10 @@ export function ContributionGraph({ calendar }: ContributionGraphProps) {
 
   const getIntensityClass = (count: number) => {
     if (count === 0) return 'bg-secondary';
-        if (count >= maxContributions * 0.75) return 'bg-orange-500';
-    if (count >= maxContributions * 0.5) return 'bg-orange-500/70';
-    if (count >= maxContributions * 0.25) return 'bg-orange-500/40';
-    return 'bg-orange-500/20';
+        if (count >= maxContributions * 0.75) return 'bg-primary';
+    if (count >= maxContributions * 0.5) return 'bg-primary/70';
+    if (count >= maxContributions * 0.25) return 'bg-primary/40';
+    return 'bg-primary/20';
   };
 
   const months = [
@@ -110,10 +110,10 @@ export function ContributionGraph({ calendar }: ContributionGraphProps) {
               <span>Less</span>
               <div className="flex gap-0.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-secondary" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500/20" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500/40" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500/70" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-primary/20" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-primary/40" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-primary/70" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-primary" />
               </div>
               <span>More</span>
             </div>
