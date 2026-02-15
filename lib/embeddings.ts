@@ -1,21 +1,28 @@
 import { embed, embedMany } from "ai";
-import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
 
-const embeddingModel = google.textEmbeddingModel("text-embedding-004");
+// Google v1beta has no working embedding models.
+// Using OpenAI text-embedding-3-small (dimension: 1536) for RAG.
+// Gemini is still used for code review generation.
+const embeddingModel = openai.embedding("text-embedding-3-small");
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   const { embedding } = await embed({
     model: embeddingModel,
     value: text,
   });
+
   return embedding;
 }
 
-export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
+export async function generateEmbeddings(
+  texts: string[]
+): Promise<number[][]> {
   const { embeddings } = await embedMany({
     model: embeddingModel,
     values: texts,
   });
+
   return embeddings;
 }
 
@@ -57,7 +64,10 @@ export function chunkCode(
   return chunks;
 }
 
-export function prepareCodeForEmbedding(path: string, content: string): string {
+export function prepareCodeForEmbedding(
+  path: string,
+  content: string
+): string {
   const extension = path.split(".").pop() || "";
   return `File: ${path}\nLanguage: ${extension}\n\n${content}`;
 }
