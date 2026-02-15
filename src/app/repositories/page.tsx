@@ -11,16 +11,16 @@ export default async function RepositoriesPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
-          <Github className="w-16 h-16 mx-auto mb-6 text-white" />
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card border border-border rounded-xl p-8 text-center">
+          <Github className="w-16 h-16 mx-auto mb-6" />
           <h1 className="text-2xl font-bold mb-2">Connect GitHub</h1>
-          <p className="text-zinc-400 mb-6">
+          <p className="text-muted-foreground mb-6">
             To see your repositories, please connect your GitHub account.
           </p>
           <Link 
             href="/api/auth/signin"
-            className="inline-block bg-white text-black px-6 py-2 rounded-lg font-medium hover:bg-zinc-200 transition-colors"
+            className="inline-block bg-orange-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors"
           >
             Connect GitHub Account
           </Link>
@@ -30,7 +30,7 @@ export default async function RepositoriesPage() {
   }
 
   return (
-    <div className="text-white font-sans">
+    <div className="font-sans">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <RepositoryList />
       </main>

@@ -22,11 +22,11 @@ export function ContributionGraph({ calendar }: ContributionGraphProps) {
   const maxContributions = Math.max(...allDays.map(d => d.contributionCount), 0);
 
   const getIntensityClass = (count: number) => {
-    if (count === 0) return 'bg-zinc-900';
-        if (count >= maxContributions * 0.75) return 'bg-purple-500';
-    if (count >= maxContributions * 0.5) return 'bg-purple-600/80';
-    if (count >= maxContributions * 0.25) return 'bg-purple-700/60';
-    return 'bg-purple-900/40';
+    if (count === 0) return 'bg-secondary';
+        if (count >= maxContributions * 0.75) return 'bg-orange-500';
+    if (count >= maxContributions * 0.5) return 'bg-orange-500/70';
+    if (count >= maxContributions * 0.25) return 'bg-orange-500/40';
+    return 'bg-orange-500/20';
   };
 
   const months = [
@@ -41,12 +41,12 @@ export function ContributionGraph({ calendar }: ContributionGraphProps) {
         className="w-full overflow-x-auto scrollbar-hide"
         style={{ scrollBehavior: 'smooth' }}
       >
-        <div className="min-w-fit p-4 bg-black border border-zinc-800 rounded-xl">
+        <div className="min-w-fit p-4 bg-card border border-border rounded-xl">
           <div className="flex flex-col gap-2">
             <div className="flex gap-1">
               <div className="w-8 shrink-0" />
               
-              <div className="flex gap-0.5 text-xs text-zinc-400">
+              <div className="flex gap-0.5 text-xs text-muted-foreground">
                 {weeks.map((week, i) => {
                   const date = new Date(week.contributionDays[0].date);
                   const prevWeek = weeks[i - 1];
@@ -67,7 +67,7 @@ export function ContributionGraph({ calendar }: ContributionGraphProps) {
             </div>
 
             <div className="flex gap-1">
-              <div className="flex flex-col gap-1 text-[10px] text-zinc-500 pt-2 pr-2  left-0 z-10 w-8 shrink-0">
+              <div className="flex flex-col gap-1 text-[10px] text-muted-foreground pt-2 pr-2  left-0 z-10 w-8 shrink-0">
                 
               </div>
 
@@ -106,14 +106,14 @@ export function ContributionGraph({ calendar }: ContributionGraphProps) {
               </div>
             </div>
             
-            <div className="flex items-center justify-end gap-2 text-xs text-zinc-400 mt-2">
+            <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground mt-2">
               <span>Less</span>
               <div className="flex gap-0.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-zinc-900" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-purple-900/40" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-purple-700/60" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-purple-600/80" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-purple-500" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-secondary" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500/20" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500/40" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500/70" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500" />
               </div>
               <span>More</span>
             </div>
@@ -123,7 +123,7 @@ export function ContributionGraph({ calendar }: ContributionGraphProps) {
 
       {hoveredDay && (
         <div 
-            className="fixed z-50 bg-zinc-900 text-white text-xs px-3 py-2 rounded-lg shadow-xl border border-zinc-700 pointer-events-none transform -translate-x-1/2 -translate-y-full mt-[-8px] whitespace-nowrap"
+            className="fixed z-50 bg-popover text-popover-foreground text-xs px-3 py-2 rounded-lg shadow-xl border border-border pointer-events-none transform -translate-x-1/2 -translate-y-full mt-[-8px] whitespace-nowrap"
             style={{ 
                 left: hoveredDay.x, 
                 top: hoveredDay.y 
@@ -132,7 +132,7 @@ export function ContributionGraph({ calendar }: ContributionGraphProps) {
             <div className="font-semibold">
                 {hoveredDay.day.contributionCount} contributions
             </div>
-            <div className="text-zinc-400">
+            <div className="text-muted-foreground">
                 {new Date(hoveredDay.day.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
         </div>

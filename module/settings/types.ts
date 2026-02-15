@@ -11,6 +11,7 @@ export interface UserSettings {
   publicProfile: boolean;
   showActivity: boolean;
   showRepositories: boolean;
+  openaiApiKey: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

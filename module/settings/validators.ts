@@ -61,6 +61,7 @@ export function sanitizeSettingsUpdate(data: SettingsUpdate): SettingsUpdate {
     "publicProfile",
     "showActivity",
     "showRepositories",
+    "openaiApiKey",
   ];
 
   for (const field of allowedFields) {

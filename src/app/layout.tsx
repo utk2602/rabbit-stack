@@ -20,7 +20,7 @@ export default function RootLayout({
         className={`antialiased font-sans`}
       > 
       <QueryProvider>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
           {children}
           <Toaster 
             position="bottom-right"

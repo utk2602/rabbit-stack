@@ -1,12 +1,11 @@
-import Image from "next/image";
-import { AuthButton } from "@/components/AuthButton";
+import LandingPage from "@/components/LandingPage";
+import { getSession } from "@/lib/auth-utils";
+import { redirect } from "next/navigation";
 
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main >
-          <AuthButton />
-      </main>
-    </div>
-  );
+export default async function Home() {
+  const session = await getSession();
+  if (session) {
+    redirect("/dashboard");
+  }
+  return <LandingPage />;
 }

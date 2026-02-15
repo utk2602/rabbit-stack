@@ -6,6 +6,6 @@ import { redirectIfAuthenticated } from "../../lib/auth-utils";
  * Use this to wrap public pages like login/signup
  */
 export async function UnAuth({ children }: { children: React.ReactNode }) {
-  await redirectIfAuthenticated("/");
+  await redirectIfAuthenticated("/dashboard");
   return <>{children}</>;
 }

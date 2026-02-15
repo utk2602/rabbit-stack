@@ -225,8 +225,8 @@ export function RepositoryList() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-        <span className="ml-3 text-zinc-400">Loading repositories...</span>
+        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <span className="ml-3 text-muted-foreground">Loading repositories...</span>
       </div>
     );
   }
@@ -235,8 +235,8 @@ export function RepositoryList() {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">Failed to load repositories</h3>
-        <p className="text-zinc-400 text-sm">{error?.message || "Something went wrong"}</p>
+        <h3 className="text-lg font-semibold mb-2">Failed to load repositories</h3>
+        <p className="text-muted-foreground text-sm">{error?.message || "Something went wrong"}</p>
       </div>
     );
   }
@@ -246,8 +246,8 @@ export function RepositoryList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-white">Your Repositories</h2>
-          <p className="text-sm text-zinc-400 mt-1">
+          <h2 className="text-xl font-semibold">Your Repositories</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             {totalCount} total repositories • {connectedCount} connected • {filteredRepos.length} shown
           </p>
         </div>
@@ -266,18 +266,18 @@ export function RepositoryList() {
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Search Box */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search repositories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -288,7 +288,7 @@ export function RepositoryList() {
         <div className="relative">
           <button
             onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 hover:border-zinc-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-secondary border border-border rounded-lg text-muted-foreground hover:border-accent transition-colors"
           >
             <Filter className="w-4 h-4" />
             <span className="capitalize">{filter.replace("-", " ")}</span>
@@ -301,7 +301,7 @@ export function RepositoryList() {
                 className="fixed inset-0 z-10" 
                 onClick={() => setShowFilterDropdown(false)} 
               />
-              <div className="absolute right-0 top-full mt-2 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-20 py-1">
+              <div className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-lg shadow-xl z-20 py-1">
                 {(["all", "connected", "not-connected", "public", "private"] as FilterType[]).map((f) => (
                   <button
                     key={f}
@@ -309,8 +309,8 @@ export function RepositoryList() {
                       setFilter(f);
                       setShowFilterDropdown(false);
                     }}
-                    className={`w-full px-4 py-2 text-left text-sm hover:bg-zinc-800 transition-colors flex items-center justify-between ${
-                      filter === f ? "text-purple-400" : "text-zinc-300"
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-accent transition-colors flex items-center justify-between ${
+                      filter === f ? "text-orange-500" : "text-foreground"
                     }`}
                   >
                     <span className="capitalize">{f.replace("-", " ")}</span>
@@ -327,7 +327,7 @@ export function RepositoryList() {
           <select
             value={languageFilter || ""}
             onChange={(e) => setLanguageFilter(e.target.value || null)}
-            className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 focus:outline-none focus:border-purple-500 transition-colors"
+            className="px-4 py-2.5 bg-secondary border border-border rounded-lg text-muted-foreground focus:outline-none focus:border-orange-500 transition-colors"
           >
             <option value="">All Languages</option>
             {languages.map((lang) => (
@@ -342,9 +342,9 @@ export function RepositoryList() {
       {/* Repository Grid */}
       {filteredRepos.length === 0 ? (
         <div className="text-center py-12">
-          <Search className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No repositories found</h3>
-          <p className="text-zinc-400 text-sm">Try adjusting your search or filters</p>
+          <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">No repositories found</h3>
+          <p className="text-muted-foreground text-sm">Try adjusting your search or filters</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -363,12 +363,12 @@ export function RepositoryList() {
       {hasNextPage && (
         <div ref={loadMoreRef} className="flex justify-center py-6">
           {isFetchingNextPage ? (
-            <div className="flex items-center gap-2 text-zinc-400">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin" />
               <span>Loading more...</span>
             </div>
           ) : (
-            <span className="text-zinc-500 text-sm">Scroll for more</span>
+            <span className="text-muted-foreground text-sm">Scroll for more</span>
           )}
         </div>
       )}
@@ -386,21 +386,21 @@ function RepositoryCard({ repo, onToggleConnection, isToggling }: RepositoryCard
   const languageColor = repo.language ? LANGUAGE_COLORS[repo.language] || "bg-zinc-500" : null;
 
   return (
-    <div className="group bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all">
+    <div className="group bg-card/50 border border-border rounded-xl p-5 hover:border-accent hover:bg-card/80 transition-all">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           {/* Repo Name */}
           <div className="flex items-center gap-2 mb-2">
             {repo.isPrivate ? (
-              <Lock className="w-4 h-4 text-zinc-500 shrink-0" />
+              <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
             ) : (
-              <Globe className="w-4 h-4 text-zinc-500 shrink-0" />
+              <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
             )}
             <a
               href={repo.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-white hover:text-purple-400 transition-colors truncate"
+              className="font-medium hover:text-orange-500 transition-colors truncate"
             >
               {repo.fullName}
             </a>
@@ -408,13 +408,13 @@ function RepositoryCard({ repo, onToggleConnection, isToggling }: RepositoryCard
 
           {/* Description */}
           {repo.description && (
-            <p className="text-sm text-zinc-400 line-clamp-2 mb-3">
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
               {repo.description}
             </p>
           )}
 
           {/* Meta Info */}
-          <div className="flex items-center gap-4 text-xs text-zinc-500">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
             {repo.language && (
               <div className="flex items-center gap-1.5">
                 <span className={`w-2.5 h-2.5 rounded-full ${languageColor}`} />
@@ -438,8 +438,8 @@ function RepositoryCard({ repo, onToggleConnection, isToggling }: RepositoryCard
           disabled={isToggling}
           className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
             repo.isConnected
-              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30"
-              : "bg-zinc-800 text-zinc-300 border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-700"
+              ? "bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 hover:bg-orange-500/30"
+              : "bg-secondary border border-border hover:border-accent hover:bg-accent"
           }`}
         >
           {repo.isConnected ? (
