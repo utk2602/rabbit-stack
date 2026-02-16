@@ -89,13 +89,7 @@ export default function Hero() {
     <main ref={heroMainRef} className="bg-hero-fg relative overflow-hidden">
       <section className="relative h-[250vh]">
         <div ref={canvas2DRef} className="relative z-10">
-          <Canvas2DFlippingGrid
-            gridCount={14}
-            boxSize={200}
-            scrollHeight="250vh"
-            imageFolder="/assets/hero/stars"
-            imageCount={12}
-          />
+          
         </div>
         <div ref={canvas3DRef} className="absolute inset-0 z-0">
           <Canvas3DGrid

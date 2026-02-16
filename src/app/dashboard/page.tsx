@@ -187,44 +187,7 @@ export default async function DashboardPage() {
             </div>
 
             {/* Sine Wave Activity Graphs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <WaveCard
-                title="Code Velocity"
-                subtitle="Lines changed per day"
-                color="#ffe0c2"
-                waves={3}
-                amplitude={25}
-                frequency={0.02}
-                height={90}
-              />
-              <WaveCard
-                title="Review Throughput"
-                subtitle="PRs reviewed over time"
-                color="#4ade80"
-                waves={2}
-                amplitude={30}
-                frequency={0.015}
-                height={90}
-              />
-              <WaveCard
-                title="Issue Resolution"
-                subtitle="Avg resolution time trend"
-                color="#60a5fa"
-                waves={3}
-                amplitude={20}
-                frequency={0.025}
-                height={90}
-              />
-              <WaveCard
-                title="Commit Frequency"
-                subtitle="Commits per hour pattern"
-                color="#c084fc"
-                waves={2}
-                amplitude={28}
-                frequency={0.018}
-                height={90}
-              />
-            </div>
+            
           </div>
 
           <div className="space-y-6">
