@@ -17,6 +17,19 @@ export const indexRepo = inngest.createFunction(
       return { success: false, error: `Missing required data: owner=${owner}, repo=${repo}, userId=${userId}` };
     }
 
+    // Fetch the user's OpenAI API key from settings
+    const openaiApiKey = await step.run("get-openai-key", async () => {
+      const settings = await db.settings.findUnique({
+        where: { userId },
+        select: { openaiApiKey: true },
+      });
+      return settings?.openaiApiKey ?? null;
+    });
+
+    if (!openaiApiKey) {
+      return { success: false, error: "No OpenAI API key found. Please provide your API key when connecting a repository." };
+    }
+
     const token = await step.run("get-token", async () => {
       const account = await db.account.findFirst({
         where: { userId, providerId: "github" },
@@ -56,7 +69,7 @@ export const indexRepo = inngest.createFunction(
           prepareCodeForEmbedding(chunk.path, chunk.content)
         );
 
-        const embeddings = await generateEmbeddings(texts);
+        const embeddings = await generateEmbeddings(texts, openaiApiKey);
 
         const vectors = batch.map((chunk, idx) => ({
           id: `${owner}/${repo}:${chunk.id}`,

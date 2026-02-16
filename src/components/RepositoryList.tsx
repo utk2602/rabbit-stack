@@ -16,7 +16,8 @@ import {
   Plus,
   X,
   ChevronDown,
-  Trash2
+  Trash2,
+  Key
 } from "lucide-react";
 
 type FilterType = "all" | "connected" | "not-connected" | "public" | "private";
@@ -128,9 +129,87 @@ export function RepositoryList() {
     });
   }, [allRepos, searchQuery, filter, languageFilter]);
 
-  const handleToggleConnection = (repo: Repository) => {
+  const handleToggleConnection = async (repo: Repository) => {
     const { isConnected, ...repoData } = repo;
-    const action = isConnected ? "Disconnecting" : "Connecting";
+
+    // If disconnecting, no need for API key check
+    if (isConnected) {
+      performToggle(repo, repoData);
+      return;
+    }
+
+    // Check if user already has an API key saved
+    try {
+      const res = await fetch("/api/settings/openai-key");
+      const data = await res.json();
+
+      if (data.hasKey) {
+        // Key already saved — proceed
+        performToggle(repo, repoData);
+        return;
+      }
+    } catch {
+      // If check fails, still prompt for key to be safe
+    }
+
+    // Prompt for OpenAI API key via a persistent toast with input
+    promptForApiKey(repo, repoData);
+  };
+
+  const promptForApiKey = (repo: Repository, repoData: Omit<Repository, "isConnected">) => {
+    const toastId = `api-key-${repo.githubId}`;
+    toast(
+      <ApiKeyToastContent
+        repoName={repo.fullName}
+        onSubmit={async (apiKey) => {
+          toast.dismiss(toastId);
+
+          toast.loading("Saving API key...", { id: `saving-key-${repo.githubId}` });
+
+          try {
+            const res = await fetch("/api/settings/openai-key", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ apiKey }),
+            });
+            const result = await res.json();
+
+            if (!res.ok) {
+              toast.error(result.error || "Invalid API key", {
+                id: `saving-key-${repo.githubId}`,
+              });
+              // Re-prompt
+              promptForApiKey(repo, repoData);
+              return;
+            }
+
+            toast.success("API key saved!", { id: `saving-key-${repo.githubId}` });
+            performToggle(repo, repoData);
+          } catch (err) {
+            toast.error("Failed to save API key. Please try again.", {
+              id: `saving-key-${repo.githubId}`,
+            });
+            promptForApiKey(repo, repoData);
+          }
+        }}
+        onCancel={() => {
+          toast.dismiss(toastId);
+          toast.error("Cannot proceed without an OpenAI API key", {
+            description: "An API key is required for AI-powered code embeddings and reviews.",
+            duration: 5000,
+          });
+        }}
+      />,
+      {
+        id: toastId,
+        duration: Infinity,
+        position: "top-center",
+      }
+    );
+  };
+
+  const performToggle = (repo: Repository, repoData: Omit<Repository, "isConnected">) => {
+    const action = repo.isConnected ? "Disconnecting" : "Connecting";
     
     toast.loading(`${action} ${repo.fullName}...`, { id: `toggle-${repo.githubId}` });
     
@@ -376,6 +455,54 @@ export function RepositoryList() {
   );
 }
 
+interface ApiKeyToastContentProps {
+  repoName: string;
+  onSubmit: (apiKey: string) => void;
+  onCancel: () => void;
+}
+
+function ApiKeyToastContent({ repoName, onSubmit, onCancel }: ApiKeyToastContentProps) {
+  const [key, setKey] = useState("");
+
+  return (
+    <div className="w-full space-y-3">
+      <div className="flex items-center gap-2">
+        <Key className="w-4 h-4 text-primary shrink-0" />
+        <p className="font-semibold text-sm">OpenAI API Key Required</p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        To connect <span className="font-medium text-foreground">{repoName}</span>, enter your OpenAI API key. It powers code embeddings for AI reviews.
+      </p>
+      <input
+        type="password"
+        placeholder="sk-..."
+        value={key}
+        onChange={(e) => setKey(e.target.value)}
+        className="w-full px-3 py-2 text-sm bg-secondary border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && key.trim()) onSubmit(key.trim());
+        }}
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={() => key.trim() && onSubmit(key.trim())}
+          disabled={!key.trim()}
+          className="flex-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 disabled:opacity-50 transition-colors"
+        >
+          Save & Connect
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-3 py-1.5 text-sm font-medium rounded-lg border border-border hover:bg-accent transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface RepositoryCardProps {
   repo: Repository;
   onToggleConnection: () => void;
@@ -438,7 +565,7 @@ function RepositoryCard({ repo, onToggleConnection, isToggling }: RepositoryCard
           disabled={isToggling}
           className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
             repo.isConnected
-              ? "bg-primary/20 text-primary text-primary border border-primary/30 hover:bg-primary/30"
+              ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
               : "bg-secondary border border-border hover:border-accent hover:bg-accent"
           }`}
         >

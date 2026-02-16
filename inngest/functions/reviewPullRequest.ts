@@ -79,6 +79,15 @@ export const reviewPullRequest = inngest.createFunction(
       return { success: false, error: "No GitHub token found" };
     }
 
+    // Fetch the user's OpenAI API key for embeddings
+    const openaiApiKey = await step.run("get-openai-key", async () => {
+      const settings = await db.settings.findUnique({
+        where: { userId },
+        select: { openaiApiKey: true },
+      });
+      return settings?.openaiApiKey ?? null;
+    });
+
     // Create pending review record
     const reviewRecord = await step.run("create-review-record", async () => {
       return await db.pullRequestReview.create({
@@ -139,7 +148,7 @@ export const reviewPullRequest = inngest.createFunction(
         try {
           // Create a query from the changed file paths and PR title
           const queryText = `${prDetails.title}\n${files.map((f) => f.filename).join("\n")}`;
-          const queryEmbedding = await generateEmbedding(queryText);
+          const queryEmbedding = await generateEmbedding(queryText, openaiApiKey ?? undefined);
 
           const results = await pineconeIndex
             .namespace(`${owner}/${repo}`)

@@ -1,14 +1,22 @@
 import { embed, embedMany } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { openai, createOpenAI } from "@ai-sdk/openai";
 
 // Google v1beta has no working embedding models.
 // Using OpenAI text-embedding-3-small (dimension: 1536) for RAG.
 // Gemini is still used for code review generation.
-const embeddingModel = openai.embedding("text-embedding-3-small");
+const defaultEmbeddingModel = openai.embedding("text-embedding-3-small");
 
-export async function generateEmbedding(text: string): Promise<number[]> {
+function getEmbeddingModel(apiKey?: string) {
+  if (apiKey) {
+    const customOpenAI = createOpenAI({ apiKey });
+    return customOpenAI.embedding("text-embedding-3-small");
+  }
+  return defaultEmbeddingModel;
+}
+
+export async function generateEmbedding(text: string, apiKey?: string): Promise<number[]> {
   const { embedding } = await embed({
-    model: embeddingModel,
+    model: getEmbeddingModel(apiKey),
     value: text,
   });
 
@@ -16,10 +24,11 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 }
 
 export async function generateEmbeddings(
-  texts: string[]
+  texts: string[],
+  apiKey?: string
 ): Promise<number[][]> {
   const { embeddings } = await embedMany({
-    model: embeddingModel,
+    model: getEmbeddingModel(apiKey),
     values: texts,
   });
 
