@@ -1,22 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import dynamic from "next/dynamic";
-import { Navbar } from "@/components/navbar";
-import Footer from "@/components/sections/footer";
+import { Header } from "@/components/header";
+import { HeroSection } from "@/components/hero";
+import { LogosSection } from "@/components/logos-section";
+import { Footer } from "@/components/footer";
 import { AuthModal } from "@/components/auth-modal";
-
-const Hero = dynamic(() => import("@/components/sections/hero"), {
-  ssr: false,
-});
 
 export default function LandingPage() {
   const [authOpen, setAuthOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar onAuthClick={() => setAuthOpen(true)} />
-      <Hero />
+      <Header onAuthClick={() => setAuthOpen(true)} />
+      <HeroSection onAuthClick={() => setAuthOpen(true)} />
+      <LogosSection />
       <Footer />
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </div>

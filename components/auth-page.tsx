@@ -88,8 +88,7 @@ export function AuthPage() {
 						</p>
 						<InputGroup>
 							<InputGroupInput
-								placeholder="your.email@example.com"
-								type="email"
+								
 							/>
 							<InputGroupAddon align="inline-start">
 								<AtSignIcon
