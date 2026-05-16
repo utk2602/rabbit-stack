@@ -674,6 +674,13 @@ function canCreateWebhooks(): boolean {
   return !webhookUrl.includes("localhost") && !webhookUrl.includes("127.0.0.1") && webhookUrl.length > 0;
 }
 
+function canBypassWebhookCreation(): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.ALLOW_LOCAL_WEBHOOK_BYPASS === "true"
+  );
+}
+
 
 export async function toggleRepositoryConnection(
   userId: string,
@@ -700,19 +707,24 @@ export async function toggleRepositoryConnection(
 
     if (newConnectionState) {
       if (!canCreateWebhooks()) {
-        console.log("[Webhook] Skipping webhook creation - no public URL configured");
-        console.log("[Webhook] To enable webhooks, set WEBHOOK_URL to your ngrok/public URL");
+        const allowBypass = canBypassWebhookCreation();
+        console.log("[Webhook] No public webhook URL configured");
         const updated = await db.repository.update({
           where: { id: existing.id },
           data: { 
-            isConnected: true,
-            webhookSecret: encryptSecret(generateWebhookSecret()), 
+            isConnected: allowBypass,
+            webhookId: null,
+            webhookSecret: allowBypass
+              ? encryptSecret(generateWebhookSecret())
+              : null,
           },
         });
         return { 
           isConnected: updated.isConnected, 
           webhookCreated: false,
-          error: "Set WEBHOOK_URL env variable to your ngrok URL to enable webhooks"
+          error: allowBypass
+            ? "Local webhook bypass enabled; production webhooks are not configured"
+            : "Set WEBHOOK_URL env variable to your public URL to connect repositories"
         };
       }
 
@@ -745,7 +757,11 @@ export async function toggleRepositoryConnection(
         console.error("Failed to create webhook:", error);
         const updated = await db.repository.update({
           where: { id: existing.id },
-          data: { isConnected: true },
+          data: {
+            isConnected: false,
+            webhookId: null,
+            webhookSecret: null,
+          },
         });
         return { 
           isConnected: updated.isConnected, 
@@ -779,10 +795,18 @@ export async function toggleRepositoryConnection(
     let webhookSecret: string | null = generateWebhookSecret();
     let webhookCreated = false;
     let webhookError: string | undefined;
+    let isConnected = false;
 
     if (!canCreateWebhooks()) {
-      console.log("[Webhook] Skipping webhook creation for new repo - no public URL configured");
-      webhookError = "Set WEBHOOK_URL env variable to your ngrok URL to enable webhooks";
+      const allowBypass = canBypassWebhookCreation();
+      console.log("[Webhook] No public webhook URL configured for new repo");
+      isConnected = allowBypass;
+      if (!allowBypass) {
+        webhookSecret = null;
+      }
+      webhookError = allowBypass
+        ? "Local webhook bypass enabled; production webhooks are not configured"
+        : "Set WEBHOOK_URL env variable to your public URL to connect repositories";
     } else {
       try {
         const webhookUrl = getWebhookUrl();
@@ -797,10 +821,12 @@ export async function toggleRepositoryConnection(
         webhookId = webhook?.id ?? null;
         webhookCreated = !!webhook;
         if (webhookCreated) {
+          isConnected = true;
           console.log(`[Webhook] Successfully created webhook ID: ${webhookId}`);
         }
       } catch (error) {
         console.error("Failed to create webhook for new repo:", error);
+        webhookSecret = null;
         webhookError = error instanceof Error ? error.message : "Failed to create webhook";
       }
     }
@@ -819,7 +845,7 @@ export async function toggleRepositoryConnection(
         forks: repoData.forks,
         openIssues: repoData.openIssues,
         isPrivate: repoData.isPrivate,
-        isConnected: true,
+        isConnected,
         webhookId,
         webhookSecret: webhookSecret ? encryptSecret(webhookSecret) : null,
       },
