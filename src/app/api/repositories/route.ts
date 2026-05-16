@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../lib/auth";
 import { headers } from "next/headers";
-import { syncUserRepositories, toggleRepositoryConnection } from "../../../../module/github/github";
+import {
+  getRepositoryConnectionData,
+  type RepositoryConnectionData,
+  syncUserRepositories,
+  toggleRepositoryConnection,
+} from "../../../../module/github/github";
 import { inngest } from "../../../../inngest/client";
 import { db } from "../../../../lib/db";
 
@@ -47,31 +52,59 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { githubId, repoData } = body;
+    const numericGithubId = Number(githubId);
 
-    if (!githubId) {
+    if (!Number.isInteger(numericGithubId)) {
       return NextResponse.json({ error: "githubId is required" }, { status: 400 });
+    }
+
+    const existingRepo = await db.repository.findFirst({
+      where: { githubId: numericGithubId, userId: session.user.id },
+      select: { fullName: true },
+    });
+
+    let canonicalRepoData: RepositoryConnectionData | undefined;
+
+    if (!existingRepo) {
+      const fullName =
+        typeof repoData?.fullName === "string" ? repoData.fullName : null;
+
+      if (!fullName) {
+        return NextResponse.json(
+          { error: "Repository full name is required" },
+          { status: 400 }
+        );
+      }
+
+      const verifiedRepoData = await getRepositoryConnectionData(
+        session.user.id,
+        numericGithubId,
+        fullName
+      );
+
+      if (!verifiedRepoData) {
+        return NextResponse.json(
+          { error: "Repository could not be verified with GitHub" },
+          { status: 403 }
+        );
+      }
+
+      canonicalRepoData = verifiedRepoData;
     }
 
     const result = await toggleRepositoryConnection(
       session.user.id,
-      githubId,
-      repoData
+      numericGithubId,
+      canonicalRepoData
     );
 
     if (result.isConnected) {
       let owner: string | undefined;
       let repo: string | undefined;
+      const fullName = existingRepo?.fullName ?? canonicalRepoData?.fullName;
 
-      if (repoData?.fullName) {
-        [owner, repo] = repoData.fullName.split("/");
-      } else {
-        const existingRepo = await db.repository.findFirst({
-          where: { githubId, userId: session.user.id },
-          select: { fullName: true },
-        });
-        if (existingRepo?.fullName) {
-          [owner, repo] = existingRepo.fullName.split("/");
-        }
+      if (fullName) {
+        [owner, repo] = fullName.split("/");
       }
 
       if (owner && repo) {

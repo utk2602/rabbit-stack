@@ -419,6 +419,57 @@ export interface UserReposResponse {
   totalCount: number;
 }
 
+export interface RepositoryConnectionData {
+  name: string;
+  fullName: string;
+  description: string | null;
+  url: string;
+  language: string | null;
+  stars: number;
+  forks: number;
+  openIssues: number;
+  isPrivate: boolean;
+}
+
+export async function getRepositoryConnectionData(
+  userId: string,
+  githubId: number,
+  fullName: string
+): Promise<RepositoryConnectionData | null> {
+  const accessToken = await getGithubToken(userId);
+
+  if (!accessToken) {
+    throw new Error("GitHub access token not found for user");
+  }
+
+  const [owner, repo] = fullName.split("/");
+  if (!owner || !repo) {
+    return null;
+  }
+
+  const octokit = new Octokit({ auth: accessToken });
+  const { data } = await octokit.rest.repos.get({
+    owner,
+    repo,
+  });
+
+  if (data.id !== githubId) {
+    return null;
+  }
+
+  return {
+    name: data.name,
+    fullName: data.full_name,
+    description: data.description,
+    url: data.html_url,
+    language: data.language,
+    stars: data.stargazers_count,
+    forks: data.forks_count,
+    openIssues: data.open_issues_count,
+    isPrivate: data.private,
+  };
+}
+
 
 export async function fetchUserRepositories(
   userId: string,
@@ -685,17 +736,7 @@ function canBypassWebhookCreation(): boolean {
 export async function toggleRepositoryConnection(
   userId: string,
   githubId: number,
-  repoData?: {
-    name: string;
-    fullName: string;
-    description: string | null;
-    url: string;
-    language: string | null;
-    stars: number;
-    forks: number;
-    openIssues: number;
-    isPrivate: boolean;
-  }
+  repoData?: RepositoryConnectionData
 ): Promise<{ isConnected: boolean; webhookCreated?: boolean; error?: string }> {
   const existing = await db.repository.findFirst({
     where: { userId, githubId },
