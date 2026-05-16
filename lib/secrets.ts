@@ -62,8 +62,15 @@ export function decryptSecret(value: string): string {
     return value;
   }
 
-  const [, , version, ivValue, authTagValue, ciphertextValue] = value.split(":");
-  if (version !== "v1" || !ivValue || !authTagValue || !ciphertextValue) {
+  const [prefix, version, ivValue, authTagValue, ciphertextValue] =
+    value.split(":");
+  if (
+    prefix !== "enc" ||
+    version !== "v1" ||
+    !ivValue ||
+    !authTagValue ||
+    !ciphertextValue
+  ) {
     throw new Error("Invalid encrypted secret format");
   }
 
