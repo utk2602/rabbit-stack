@@ -17,6 +17,7 @@ model user {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   accounts      account[]
+  auditLogs     auditLog[]
   repositories  repository[]
   sessions      session[]
   settings      settings?
@@ -87,6 +88,7 @@ model repository {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   user          user               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditLogs     auditLog[]
   reviews       pullRequestReview[]
 
   @@index([userId])
@@ -159,4 +161,23 @@ model settings {
   user                user     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model auditLog {
+  id           String      @id @default(cuid())
+  userId       String?
+  repositoryId String?
+  event        String
+  severity     String      @default("info")
+  message      String
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+  user         user?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  repository   repository? @relation(fields: [repositoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([repositoryId])
+  @@index([event])
+  @@index([severity])
+  @@index([createdAt])
 }
