@@ -6,7 +6,8 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "backfill:secrets": "tsx Scripts/backfill-encrypted-secrets.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.14",
