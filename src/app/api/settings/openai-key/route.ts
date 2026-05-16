@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../../lib/auth";
 import { headers } from "next/headers";
 import { db } from "../../../../../lib/db";
+import { encryptSecret } from "../../../../../lib/secrets";
 
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -32,10 +33,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const encryptedApiKey = encryptSecret(apiKey);
+
   await db.settings.upsert({
     where: { userId: session.user.id },
-    update: { openaiApiKey: apiKey },
-    create: { userId: session.user.id, openaiApiKey: apiKey },
+    update: { openaiApiKey: encryptedApiKey },
+    create: { userId: session.user.id, openaiApiKey: encryptedApiKey },
   });
 
   return NextResponse.json({ success: true });

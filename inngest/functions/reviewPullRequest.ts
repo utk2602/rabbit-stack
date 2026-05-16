@@ -15,6 +15,7 @@ import {
 import { pineconeIndex } from "../../lib/pinecone";
 import { generateEmbedding } from "../../lib/embeddings";
 import type { ReviewContext } from "../../lib/prompts/code-review";
+import { decryptOptionalSecret } from "../../lib/secrets";
 
 interface ReviewRequestEvent {
   name: "pull_request.review_requested";
@@ -85,7 +86,7 @@ export const reviewPullRequest = inngest.createFunction(
         where: { userId },
         select: { openaiApiKey: true },
       });
-      return settings?.openaiApiKey ?? null;
+      return decryptOptionalSecret(settings?.openaiApiKey);
     });
 
     // Create pending review record

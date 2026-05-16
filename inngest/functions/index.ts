@@ -3,6 +3,7 @@ import { db } from "../../lib/db";
 import { getRepoFileContent } from "../../module/github/github";
 import { chunkCode, generateEmbeddings, prepareCodeForEmbedding } from "../../lib/embeddings";
 import { pineconeIndex } from "../../lib/pinecone";
+import { decryptOptionalSecret } from "../../lib/secrets";
 
 // Re-export the PR review function
 export { reviewPullRequest } from "./reviewPullRequest";
@@ -23,7 +24,7 @@ export const indexRepo = inngest.createFunction(
         where: { userId },
         select: { openaiApiKey: true },
       });
-      return settings?.openaiApiKey ?? null;
+      return decryptOptionalSecret(settings?.openaiApiKey);
     });
 
     if (!openaiApiKey) {

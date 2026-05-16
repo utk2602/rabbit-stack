@@ -6,6 +6,7 @@ import prisma from "../../lib/db";
 import { headers } from "next/headers";
 import { validateSettingsUpdate, sanitizeSettingsUpdate } from "./validators";
 import { DEFAULT_SETTINGS } from "./constants";
+import { encryptSecret } from "../../lib/secrets";
 
 export async function getUserSettings() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -22,7 +23,7 @@ export async function getUserSettings() {
     return await createDefaultSettings(session.user.id);
   }
 
-  return settings;
+  return { ...settings, openaiApiKey: null };
 }
 
 async function createDefaultSettings(userId: string) {
@@ -61,6 +62,18 @@ export async function updateUserSettings(data: any) {
   try {
     const sanitizedData = sanitizeSettingsUpdate(data);
     validateSettingsUpdate(sanitizedData);
+
+    if (typeof sanitizedData.openaiApiKey === "string") {
+      const apiKey = sanitizedData.openaiApiKey.trim();
+      if (!apiKey) {
+        delete sanitizedData.openaiApiKey;
+      } else {
+        sanitizedData.openaiApiKey = encryptSecret(apiKey);
+      }
+    } else if (sanitizedData.openaiApiKey === null) {
+      delete sanitizedData.openaiApiKey;
+    }
+
     const existingSettings = await prisma.settings.findUnique({
       where: { userId: session.user.id },
     });
@@ -73,7 +86,7 @@ export async function updateUserSettings(data: any) {
         },
       });
       revalidatePath("/dashboard/settings");
-      return newSettings;
+      return { ...newSettings, openaiApiKey: null };
     }
     const updatedSettings = await prisma.settings.update({
       where: { userId: session.user.id },
@@ -81,7 +94,7 @@ export async function updateUserSettings(data: any) {
     });
 
     revalidatePath("/dashboard/settings");
-    return updatedSettings;
+    return { ...updatedSettings, openaiApiKey: null };
   } catch (error) {
     console.error("Error updating settings:", error);
     throw error;
@@ -102,7 +115,7 @@ export async function resetUserSettings() {
     });
 
     revalidatePath("/dashboard/settings");
-    return resetSettings;
+    return { ...resetSettings, openaiApiKey: null };
   } catch (error) {
     console.error("Error resetting settings:", error);
     throw new Error("Failed to reset settings");
@@ -141,13 +154,24 @@ export async function updateSettingField(field: string, value: any) {
     const sanitizedData = sanitizeSettingsUpdate(updateData);
     validateSettingsUpdate(sanitizedData);
 
+    if (typeof sanitizedData.openaiApiKey === "string") {
+      const apiKey = sanitizedData.openaiApiKey.trim();
+      if (!apiKey) {
+        delete sanitizedData.openaiApiKey;
+      } else {
+        sanitizedData.openaiApiKey = encryptSecret(apiKey);
+      }
+    } else if (sanitizedData.openaiApiKey === null) {
+      delete sanitizedData.openaiApiKey;
+    }
+
     const updatedSettings = await prisma.settings.update({
       where: { userId: session.user.id },
       data: sanitizedData,
     });
 
     revalidatePath("/dashboard/settings");
-    return updatedSettings;
+    return { ...updatedSettings, openaiApiKey: null };
   } catch (error) {
     console.error(`Error updating ${String(field)}:`, error);
     throw error;
