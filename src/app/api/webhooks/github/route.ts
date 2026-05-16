@@ -13,6 +13,16 @@ type WebhookEvent =
   | "commit_comment"
   | "ping";
 
+const SUPPORTED_WEBHOOK_EVENTS = new Set<string>([
+  "push",
+  "pull_request",
+  "pull_request_review",
+  "pull_request_review_comment",
+  "issue_comment",
+  "commit_comment",
+  "ping",
+]);
+
 interface WebhookPayload {
   action?: string;
   repository: {
@@ -50,6 +60,10 @@ interface WebhookPayload {
     body: string;
     html_url: string;
   };
+}
+
+function isWebhookEvent(event: string | null): event is WebhookEvent {
+  return event !== null && SUPPORTED_WEBHOOK_EVENTS.has(event);
 }
 
 function verifyWebhookSignature(
@@ -172,10 +186,37 @@ async function handlePingEvent(payload: WebhookPayload) {
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
-    const payload = JSON.parse(rawBody) as WebhookPayload;
+    let parsedPayload: Partial<WebhookPayload>;
+
+    try {
+      parsedPayload = JSON.parse(rawBody) as Partial<WebhookPayload>;
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid webhook payload" },
+        { status: 400 }
+      );
+    }
+
     const signature = request.headers.get("x-hub-signature-256");
-    const event = request.headers.get("x-github-event") as WebhookEvent;
+    const eventHeader = request.headers.get("x-github-event");
     const deliveryId = request.headers.get("x-github-delivery");
+
+    if (!isWebhookEvent(eventHeader)) {
+      return NextResponse.json(
+        { error: "Unsupported webhook event" },
+        { status: 400 }
+      );
+    }
+
+    if (!parsedPayload.repository?.id || !parsedPayload.repository.full_name) {
+      return NextResponse.json(
+        { error: "Invalid webhook repository payload" },
+        { status: 400 }
+      );
+    }
+
+    const payload = parsedPayload as WebhookPayload;
+    const event = eventHeader;
 
     console.log(`[Webhook] Received ${event} event (delivery: ${deliveryId})`);
 
@@ -198,20 +239,26 @@ export async function POST(request: NextRequest) {
 
     const webhookSecret = decryptOptionalSecret(repository.webhookSecret);
 
-    if (webhookSecret) {
-      const isValid = verifyWebhookSignature(
-        rawBody,
-        signature,
-        webhookSecret
+    if (!webhookSecret) {
+      console.error("[Webhook] Connected repository has no webhook secret");
+      return NextResponse.json(
+        { error: "Webhook signature verification is not configured" },
+        { status: 401 }
       );
+    }
 
-      if (!isValid) {
-        console.error("[Webhook] Invalid signature");
-        return NextResponse.json(
-          { error: "Invalid webhook signature" },
-          { status: 401 }
-        );
-      }
+    const isValid = verifyWebhookSignature(
+      rawBody,
+      signature,
+      webhookSecret
+    );
+
+    if (!isValid) {
+      console.error("[Webhook] Invalid signature");
+      return NextResponse.json(
+        { error: "Invalid webhook signature" },
+        { status: 401 }
+      );
     }
 
     switch (event) {
