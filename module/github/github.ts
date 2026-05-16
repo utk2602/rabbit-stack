@@ -1,6 +1,7 @@
 import { db } from "../../lib/db";
 import { Octokit } from "octokit";
 import crypto from "crypto";
+import { decryptOptionalSecret } from "../../lib/secrets";
 
 const GITHUB_GRAPHQL_API = "https://api.github.com/graphql";
 const GITHUB_REST_API = "https://api.github.com";
@@ -29,7 +30,7 @@ export async function getGithubToken(userId: string): Promise<string | null> {
     },
   });
 
-  return account?.accessToken ?? null;
+  return decryptOptionalSecret(account?.accessToken);
 }
 const CONTRIBUTIONS_QUERY = `
   query($username: String!, $from: DateTime!, $to: DateTime!) {

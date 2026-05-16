@@ -1,6 +1,6 @@
 import { inngest } from "../client";
 import { db } from "../../lib/db";
-import { getRepoFileContent } from "../../module/github/github";
+import { getGithubToken, getRepoFileContent } from "../../module/github/github";
 import { chunkCode, generateEmbeddings, prepareCodeForEmbedding } from "../../lib/embeddings";
 import { pineconeIndex } from "../../lib/pinecone";
 import { decryptOptionalSecret } from "../../lib/secrets";
@@ -31,13 +31,7 @@ export const indexRepo = inngest.createFunction(
       return { success: false, error: "No OpenAI API key found. Please provide your API key when connecting a repository." };
     }
 
-    const token = await step.run("get-token", async () => {
-      const account = await db.account.findFirst({
-        where: { userId, providerId: "github" },
-        select: { accessToken: true },
-      });
-      return account?.accessToken ?? null;
-    });
+    const token = await step.run("get-token", async () => getGithubToken(userId));
 
     if (!token) {
       return { success: false, error: "No GitHub token found" };
