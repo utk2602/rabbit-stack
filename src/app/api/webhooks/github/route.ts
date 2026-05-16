@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "../../../../../lib/db";
 import { inngest } from "../../../../../inngest/client";
+import { decryptOptionalSecret } from "../../../../../lib/secrets";
 
 type WebhookEvent =
   | "push"
@@ -195,11 +196,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (repository.webhookSecret) {
+    const webhookSecret = decryptOptionalSecret(repository.webhookSecret);
+
+    if (webhookSecret) {
       const isValid = verifyWebhookSignature(
         rawBody,
         signature,
-        repository.webhookSecret
+        webhookSecret
       );
 
       if (!isValid) {

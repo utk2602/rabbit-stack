@@ -1,7 +1,7 @@
 import { db } from "../../lib/db";
 import { Octokit } from "octokit";
 import crypto from "crypto";
-import { decryptOptionalSecret } from "../../lib/secrets";
+import { decryptOptionalSecret, encryptSecret } from "../../lib/secrets";
 
 const GITHUB_GRAPHQL_API = "https://api.github.com/graphql";
 const GITHUB_REST_API = "https://api.github.com";
@@ -706,7 +706,7 @@ export async function toggleRepositoryConnection(
           where: { id: existing.id },
           data: { 
             isConnected: true,
-            webhookSecret: generateWebhookSecret(), 
+            webhookSecret: encryptSecret(generateWebhookSecret()), 
           },
         });
         return { 
@@ -733,7 +733,7 @@ export async function toggleRepositoryConnection(
           data: {
             isConnected: true,
             webhookId: webhook?.id ?? null,
-            webhookSecret: webhookSecret,
+            webhookSecret: encryptSecret(webhookSecret),
           },
         });
 
@@ -821,7 +821,7 @@ export async function toggleRepositoryConnection(
         isPrivate: repoData.isPrivate,
         isConnected: true,
         webhookId,
-        webhookSecret,
+        webhookSecret: webhookSecret ? encryptSecret(webhookSecret) : null,
       },
     });
 
