@@ -187,3 +187,20 @@ model auditLog {
   @@index([severity])
   @@index([createdAt])
 }
+
+model dependencyAudit {
+  id              String   @id @default(cuid())
+  source          String   @default("npm")
+  total           Int      @default(0)
+  critical        Int      @default(0)
+  high            Int      @default(0)
+  moderate        Int      @default(0)
+  low             Int      @default(0)
+  info            Int      @default(0)
+  fixable         Int      @default(0)
+  raw             Json
+  createdAt       DateTime @default(now())
+
+  @@index([source])
+  @@index([createdAt])
+}
