@@ -12,6 +12,15 @@ export interface SecuritySummary {
     missingSecret: number;
     missingWebhookId: number;
     invalidRecent: number;
+    repositories: Array<{
+      id: string;
+      fullName: string;
+      isConnected: boolean;
+      lastStatus: string | null;
+      lastEvent: string | null;
+      lastError: string | null;
+      lastAt: string | null;
+    }>;
   };
   reviews: {
     failed: number;
@@ -65,7 +74,12 @@ export async function getSecuritySummary(userId: string): Promise<SecuritySummar
           webhookId: true,
           webhookSecret: true,
           lastWebhookStatus: true,
+          lastWebhookEvent: true,
+          lastWebhookError: true,
+          lastWebhookAt: true,
         },
+        orderBy: { updatedAt: "desc" },
+        take: 12,
       }),
       db.pullRequestReview.count({
         where: {
@@ -122,6 +136,15 @@ export async function getSecuritySummary(userId: string): Promise<SecuritySummar
       invalidRecent: connectedRepos.filter(
         (repo) => repo.lastWebhookStatus === "invalid"
       ).length,
+      repositories: repositories.map((repo) => ({
+        id: repo.id,
+        fullName: repo.fullName,
+        isConnected: repo.isConnected,
+        lastStatus: repo.lastWebhookStatus,
+        lastEvent: repo.lastWebhookEvent,
+        lastError: repo.lastWebhookError,
+        lastAt: repo.lastWebhookAt?.toISOString() ?? null,
+      })),
     },
     reviews: {
       failed: failedReviews,

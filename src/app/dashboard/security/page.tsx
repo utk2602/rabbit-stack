@@ -185,11 +185,69 @@ export default async function SecurityPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-border bg-card p-5">
-            <h2 className="text-lg font-semibold tracking-normal">
-              Recommended Next Actions
-            </h2>
-            <div className="mt-5 space-y-3">
+          <div className="space-y-6">
+            <div className="rounded-lg border border-border bg-card p-5">
+              <h2 className="text-lg font-semibold tracking-normal">
+                Webhook Health
+              </h2>
+              <div className="mt-5 space-y-3">
+                {summary.webhooks.repositories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No repositories have been synced yet.
+                  </p>
+                ) : (
+                  summary.webhooks.repositories.map((repo) => {
+                    const status = repo.isConnected
+                      ? repo.lastStatus ?? "waiting"
+                      : "disconnected";
+                    const tone =
+                      status === "valid"
+                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-100"
+                        : status === "invalid"
+                          ? "border-red-500/20 bg-red-500/10 text-red-100"
+                          : "border-border bg-secondary text-muted-foreground";
+
+                    return (
+                      <div
+                        key={repo.id}
+                        className="rounded-lg border border-border p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="truncate text-sm font-medium">
+                            {repo.fullName}
+                          </p>
+                          <span
+                            className={`shrink-0 rounded-md border px-2 py-1 text-xs ${tone}`}
+                          >
+                            {status}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {repo.lastEvent
+                            ? `${repo.lastEvent} at ${
+                                repo.lastAt
+                                  ? new Date(repo.lastAt).toLocaleString()
+                                  : "unknown time"
+                              }`
+                            : "No webhook delivery recorded yet."}
+                        </p>
+                        {repo.lastError && (
+                          <p className="mt-2 text-xs text-red-300">
+                            {repo.lastError}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-5">
+              <h2 className="text-lg font-semibold tracking-normal">
+                Recommended Next Actions
+              </h2>
+              <div className="mt-5 space-y-3">
               {summary.secrets.plaintext > 0 && (
                 <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
                   Run `npm run backfill:secrets` after setting
@@ -213,6 +271,7 @@ export default async function SecurityPage() {
                     Core secret and webhook checks look clean.
                   </div>
                 )}
+              </div>
             </div>
           </div>
         </section>
