@@ -29,6 +29,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - Set `WEBHOOK_URL` to a public HTTPS app URL in production. Local webhook bypass is only for development.
 - Leave `PINECONE_STORE_CODE_SNIPPETS=false` unless you intentionally want raw code snippets stored in Pinecone metadata.
 - Run `npm run audit:ingest` after dependency audits so the security dashboard shows current dependency risk.
+- Run `npm run reviews:prune` on a schedule to remove old stored review payloads. Tune with `REVIEW_RETENTION_DAYS`.
 
 ## Review Rules
 
@@ -47,6 +48,7 @@ commit repository-local rules in one of these files:
 - `npm run security:env` validates required security environment variables.
 - `npm run backfill:secrets` encrypts legacy plaintext secrets.
 - `npm run audit:ingest` stores the latest npm audit result for the dashboard.
+- `npm run reviews:prune` deletes review records older than the configured retention window.
 
 ## Deployment
 
