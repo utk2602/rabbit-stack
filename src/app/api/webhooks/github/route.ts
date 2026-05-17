@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { db } from "../../../../../lib/db";
 import { inngest } from "../../../../../inngest/client";
 import { decryptOptionalSecret } from "../../../../../lib/secrets";
+import { safeRecordAuditEvent } from "../../../../../lib/audit";
 
 type WebhookEvent =
   | "push"
@@ -241,6 +242,14 @@ export async function POST(request: NextRequest) {
 
     if (!webhookSecret) {
       console.error("[Webhook] Connected repository has no webhook secret");
+      await safeRecordAuditEvent({
+        event: "webhook.secret.missing",
+        userId: repository.userId,
+        repositoryId: repository.id,
+        severity: "error",
+        message: "Connected repository received a webhook without a stored secret",
+        metadata: { deliveryId, event },
+      });
       return NextResponse.json(
         { error: "Webhook signature verification is not configured" },
         { status: 401 }
@@ -255,6 +264,14 @@ export async function POST(request: NextRequest) {
 
     if (!isValid) {
       console.error("[Webhook] Invalid signature");
+      await safeRecordAuditEvent({
+        event: "webhook.signature.invalid",
+        userId: repository.userId,
+        repositoryId: repository.id,
+        severity: "error",
+        message: "GitHub webhook signature verification failed",
+        metadata: { deliveryId, event },
+      });
       return NextResponse.json(
         { error: "Invalid webhook signature" },
         { status: 401 }

@@ -23,3 +23,11 @@ export async function recordAuditEvent(input: AuditEventInput) {
     },
   });
 }
+
+export async function safeRecordAuditEvent(input: AuditEventInput) {
+  try {
+    await recordAuditEvent(input);
+  } catch (error) {
+    console.error("Failed to record audit event:", error);
+  }
+}

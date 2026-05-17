@@ -9,6 +9,7 @@ import {
 } from "../../../../module/github/github";
 import { inngest } from "../../../../inngest/client";
 import { db } from "../../../../lib/db";
+import { safeRecordAuditEvent } from "../../../../lib/audit";
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -83,6 +84,14 @@ export async function POST(request: NextRequest) {
       );
 
       if (!verifiedRepoData) {
+        await safeRecordAuditEvent({
+          event: "repository.verify.failed",
+          userId: session.user.id,
+          severity: "warning",
+          message: "Repository connection request failed GitHub verification",
+          metadata: { githubId: numericGithubId, fullName },
+        });
+
         return NextResponse.json(
           { error: "Repository could not be verified with GitHub" },
           { status: 403 }
@@ -97,6 +106,19 @@ export async function POST(request: NextRequest) {
       numericGithubId,
       canonicalRepoData
     );
+
+    await safeRecordAuditEvent({
+      event: result.isConnected
+        ? "repository.connected"
+        : "repository.disconnected_or_failed",
+      userId: session.user.id,
+      severity: result.error ? "warning" : "info",
+      message: result.error ?? "Repository connection state changed",
+      metadata: {
+        githubId: numericGithubId,
+        webhookCreated: result.webhookCreated ?? false,
+      },
+    });
 
     if (result.isConnected) {
       let owner: string | undefined;

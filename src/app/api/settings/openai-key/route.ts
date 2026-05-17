@@ -3,6 +3,7 @@ import { auth } from "../../../../../lib/auth";
 import { headers } from "next/headers";
 import { db } from "../../../../../lib/db";
 import { encryptSecret } from "../../../../../lib/secrets";
+import { safeRecordAuditEvent } from "../../../../../lib/audit";
 
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -39,6 +40,12 @@ export async function POST(request: NextRequest) {
     where: { userId: session.user.id },
     update: { openaiApiKey: encryptedApiKey },
     create: { userId: session.user.id, openaiApiKey: encryptedApiKey },
+  });
+
+  await safeRecordAuditEvent({
+    event: "settings.openai_key.updated",
+    userId: session.user.id,
+    message: "OpenAI API key was updated",
   });
 
   return NextResponse.json({ success: true });

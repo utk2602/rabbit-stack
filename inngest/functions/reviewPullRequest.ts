@@ -16,6 +16,7 @@ import { pineconeIndex } from "../../lib/pinecone";
 import { generateEmbedding } from "../../lib/embeddings";
 import type { ReviewContext } from "../../lib/prompts/code-review";
 import { decryptOptionalSecret } from "../../lib/secrets";
+import { safeRecordAuditEvent } from "../../lib/audit";
 
 interface ReviewRequestEvent {
   name: "pull_request.review_requested";
@@ -307,6 +308,20 @@ export const reviewPullRequest = inngest.createFunction(
           data: {
             status: "failed",
             error: error instanceof Error ? error.message : "Unknown error",
+          },
+        });
+
+        await safeRecordAuditEvent({
+          event: "review.failed",
+          userId,
+          repositoryId,
+          severity: "error",
+          message: "AI pull request review failed",
+          metadata: {
+            owner,
+            repo,
+            pullNumber,
+            headSha,
           },
         });
       });
