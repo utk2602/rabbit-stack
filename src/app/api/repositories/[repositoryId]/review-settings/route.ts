@@ -5,6 +5,7 @@ import {
   getRepositoryReviewSettings,
   updateRepositoryReviewSettings,
 } from "@/lib/review-settings";
+import { safeRecordAuditEvent } from "@/lib/audit";
 
 interface RouteContext {
   params: Promise<{ repositoryId: string }>;
@@ -26,6 +27,20 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   if (!settings) {
     return NextResponse.json({ error: "Repository not found" }, { status: 404 });
   }
+
+  await safeRecordAuditEvent({
+    event: "review_settings.updated",
+    userId: session.user.id,
+    repositoryId,
+    severity: "info",
+    message: "Repository review settings updated",
+    metadata: {
+      mode: settings.mode,
+      minimumSeverityToPost: settings.minimumSeverityToPost,
+      useRepositoryRules: settings.useRepositoryRules,
+      hasCustomRules: Boolean(settings.customRules),
+    },
+  });
 
   return NextResponse.json({ settings });
 }
