@@ -4,6 +4,7 @@ import { db } from "../../../../../lib/db";
 import { inngest } from "../../../../../inngest/client";
 import { decryptOptionalSecret } from "../../../../../lib/secrets";
 import { safeRecordAuditEvent } from "../../../../../lib/audit";
+import { internalServerError } from "../../../../../lib/api-response";
 
 type WebhookEvent =
   | "push"
@@ -357,10 +358,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Webhook] Error processing webhook:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Webhook processing failed" },
-      { status: 500 }
-    );
+    return internalServerError("Webhook processing failed");
   }
 }
 
