@@ -191,8 +191,13 @@ export const reviewPullRequest = inngest.createFunction(
                 const meta = match.metadata as {
                   path?: string;
                   content?: string;
+                  contentHash?: string;
                 };
-                return `### ${meta.path}\n\`\`\`\n${meta.content}\n\`\`\``;
+                if (meta.content) {
+                  return `### ${meta.path}\n\`\`\`\n${meta.content}\n\`\`\``;
+                }
+
+                return `### ${meta.path}\nIndexed context matched. Snippet storage is disabled. Content hash: ${meta.contentHash ?? "unavailable"}`;
               })
               .join("\n\n");
           }

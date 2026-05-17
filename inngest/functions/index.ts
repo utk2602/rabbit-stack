@@ -1,5 +1,6 @@
 import { inngest } from "../client";
 import { db } from "../../lib/db";
+import crypto from "crypto";
 import { getGithubToken, getRepoFileContent } from "../../module/github/github";
 import { chunkCode, generateEmbeddings, prepareCodeForEmbedding } from "../../lib/embeddings";
 import { pineconeIndex } from "../../lib/pinecone";
@@ -7,6 +8,14 @@ import { decryptOptionalSecret } from "../../lib/secrets";
 
 // Re-export the PR review function
 export { reviewPullRequest } from "./reviewPullRequest";
+
+function shouldStoreCodeSnippets() {
+  return process.env.PINECONE_STORE_CODE_SNIPPETS === "true";
+}
+
+function hashChunkContent(content: string) {
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
 
 export const indexRepo = inngest.createFunction(
   { id: "index-repo" },
@@ -66,19 +75,28 @@ export const indexRepo = inngest.createFunction(
 
         const embeddings = await generateEmbeddings(texts, openaiApiKey);
 
-        const vectors = batch.map((chunk, idx) => ({
-          id: `${owner}/${repo}:${chunk.id}`,
-          values: embeddings[idx],
-          metadata: {
+        const storeCodeSnippets = shouldStoreCodeSnippets();
+        const vectors = batch.map((chunk, idx) => {
+          const metadata: Record<string, string | number> = {
             owner,
             repo,
             userId,
             path: chunk.path,
             startLine: chunk.startLine,
             endLine: chunk.endLine,
-            content: chunk.content.slice(0, 1000),
-          },
-        }));
+            contentHash: hashChunkContent(chunk.content),
+          };
+
+          if (storeCodeSnippets) {
+            metadata.content = chunk.content.slice(0, 1000);
+          }
+
+          return {
+            id: `${owner}/${repo}:${chunk.id}`,
+            values: embeddings[idx],
+            metadata,
+          };
+        });
 
         await pineconeIndex.namespace(`${owner}/${repo}`).upsert(vectors);
         totalIndexed += vectors.length;
