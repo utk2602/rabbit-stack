@@ -16,6 +16,11 @@ export interface Repository {
   openIssues: number;
   isPrivate: boolean;
   isConnected: boolean;
+  indexingStatus: "not_started" | "indexing" | "completed" | "failed" | string;
+  lastIndexedAt: string | null;
+  lastIndexError: string | null;
+  indexedFileCount: number;
+  indexedChunkCount: number;
 }
 
 export interface RepositoriesPage {

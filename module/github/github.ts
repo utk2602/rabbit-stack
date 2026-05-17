@@ -544,7 +544,16 @@ export async function syncUserRepositories(
 
   const existingRepos = await db.repository.findMany({
     where: { userId },
-    select: { id: true, githubId: true, isConnected: true },
+    select: {
+      id: true,
+      githubId: true,
+      isConnected: true,
+      indexingStatus: true,
+      lastIndexedAt: true,
+      lastIndexError: true,
+      indexedFileCount: true,
+      indexedChunkCount: true,
+    },
   });
 
   const existingRepoMap = new Map(
@@ -565,6 +574,11 @@ export async function syncUserRepositories(
     openIssues: repo.openIssues.totalCount,
     isPrivate: repo.isPrivate,
     isConnected: existingRepoMap.get(repo.databaseId)?.isConnected ?? false,
+    indexingStatus: existingRepoMap.get(repo.databaseId)?.indexingStatus ?? "not_started",
+    lastIndexedAt: existingRepoMap.get(repo.databaseId)?.lastIndexedAt?.toISOString() ?? null,
+    lastIndexError: existingRepoMap.get(repo.databaseId)?.lastIndexError ?? null,
+    indexedFileCount: existingRepoMap.get(repo.databaseId)?.indexedFileCount ?? 0,
+    indexedChunkCount: existingRepoMap.get(repo.databaseId)?.indexedChunkCount ?? 0,
   }));
 
   return {

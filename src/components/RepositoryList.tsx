@@ -13,13 +13,15 @@ import {
   Loader2, 
   AlertCircle,
   Check,
+  Clock3,
   Plus,
   X,
   ChevronDown,
   Trash2,
   Key,
   Settings2,
-  ShieldCheck
+  ShieldCheck,
+  DatabaseZap
 } from "lucide-react";
 
 type FilterType = "all" | "connected" | "not-connected" | "public" | "private";
@@ -547,6 +549,8 @@ interface RepositoryCardProps {
 function RepositoryCard({ repo, onToggleConnection, onSettingsClick, isToggling }: RepositoryCardProps) {
   const languageColor = repo.language ? LANGUAGE_COLORS[repo.language] || "bg-zinc-500" : null;
   const canEditSettings = repo.isConnected && Boolean(repo.id);
+  const indexingLabel = getIndexingLabel(repo);
+  const IndexingIcon = getIndexingIcon(repo.indexingStatus);
 
   return (
     <div className="group bg-card/50 border border-border rounded-xl p-5 hover:border-accent hover:bg-card/80 transition-all">
@@ -593,6 +597,16 @@ function RepositoryCard({ repo, onToggleConnection, onSettingsClick, isToggling 
               <span>{repo.forks.toLocaleString()}</span>
             </div>
           </div>
+
+          {repo.isConnected && (
+            <div
+              className={`mt-3 flex w-fit max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${getIndexingTone(repo.indexingStatus)}`}
+              title={repo.lastIndexError ?? indexingLabel}
+            >
+              <IndexingIcon className={`h-3.5 w-3.5 shrink-0 ${repo.indexingStatus === "indexing" ? "animate-spin" : ""}`} />
+              <span className="truncate">{indexingLabel}</span>
+            </div>
+          )}
         </div>
 
         {/* Connect Button */}
@@ -632,6 +646,33 @@ function RepositoryCard({ repo, onToggleConnection, onSettingsClick, isToggling 
       </div>
     </div>
   );
+}
+
+function getIndexingLabel(repo: Repository) {
+  switch (repo.indexingStatus) {
+    case "completed":
+      return `Indexed ${repo.indexedFileCount.toLocaleString()} files`;
+    case "indexing":
+      return "Indexing codebase";
+    case "failed":
+      return repo.lastIndexError ? `Index failed: ${repo.lastIndexError}` : "Indexing failed";
+    default:
+      return "Index pending";
+  }
+}
+
+function getIndexingIcon(status: Repository["indexingStatus"]) {
+  if (status === "completed") return DatabaseZap;
+  if (status === "failed") return AlertCircle;
+  if (status === "indexing") return Loader2;
+  return Clock3;
+}
+
+function getIndexingTone(status: Repository["indexingStatus"]) {
+  if (status === "completed") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+  if (status === "failed") return "border-red-500/20 bg-red-500/10 text-red-300";
+  if (status === "indexing") return "border-primary/20 bg-primary/10 text-primary";
+  return "border-border bg-secondary text-muted-foreground";
 }
 
 interface ReviewSettingsModalProps {
