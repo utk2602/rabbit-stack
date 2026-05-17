@@ -17,11 +17,36 @@ import {
   X,
   ChevronDown,
   Trash2,
-  Key
+  Key,
+  Settings2,
+  ShieldCheck
 } from "lucide-react";
 
 type FilterType = "all" | "connected" | "not-connected" | "public" | "private";
 type LanguageFilter = string | null;
+type ReviewMode = "balanced" | "security" | "performance" | "style" | "strict";
+type ReviewSeverity = "info" | "warning" | "error";
+
+interface ReviewSettings {
+  mode: ReviewMode;
+  minimumSeverityToPost: ReviewSeverity;
+  customRules: string | null;
+  useRepositoryRules: boolean;
+}
+
+const REVIEW_MODES: Array<{ value: ReviewMode; label: string }> = [
+  { value: "balanced", label: "Balanced" },
+  { value: "security", label: "Security" },
+  { value: "performance", label: "Performance" },
+  { value: "style", label: "Style" },
+  { value: "strict", label: "Strict" },
+];
+
+const SEVERITY_OPTIONS: Array<{ value: ReviewSeverity; label: string }> = [
+  { value: "info", label: "Info" },
+  { value: "warning", label: "Warning" },
+  { value: "error", label: "Error" },
+];
 
 const LANGUAGE_COLORS: Record<string, string> = {
   TypeScript: "bg-blue-500",
@@ -50,6 +75,7 @@ export function RepositoryList() {
   const [filter, setFilter] = useState<FilterType>("all");
   const [languageFilter, setLanguageFilter] = useState<LanguageFilter>(null);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [settingsRepo, setSettingsRepo] = useState<Repository | null>(null);
   
   const {
     data,
@@ -432,10 +458,18 @@ export function RepositoryList() {
               key={repo.githubId}
               repo={repo}
               onToggleConnection={() => handleToggleConnection(repo)}
+              onSettingsClick={() => setSettingsRepo(repo)}
               isToggling={toggleConnection.isPending}
             />
           ))}
         </div>
+      )}
+
+      {settingsRepo && (
+        <ReviewSettingsModal
+          repo={settingsRepo}
+          onClose={() => setSettingsRepo(null)}
+        />
       )}
 
       {/* Load More Trigger */}
@@ -506,11 +540,13 @@ function ApiKeyToastContent({ repoName, onSubmit, onCancel }: ApiKeyToastContent
 interface RepositoryCardProps {
   repo: Repository;
   onToggleConnection: () => void;
+  onSettingsClick: () => void;
   isToggling: boolean;
 }
 
-function RepositoryCard({ repo, onToggleConnection, isToggling }: RepositoryCardProps) {
+function RepositoryCard({ repo, onToggleConnection, onSettingsClick, isToggling }: RepositoryCardProps) {
   const languageColor = repo.language ? LANGUAGE_COLORS[repo.language] || "bg-zinc-500" : null;
+  const canEditSettings = repo.isConnected && Boolean(repo.id);
 
   return (
     <div className="group bg-card/50 border border-border rounded-xl p-5 hover:border-accent hover:bg-card/80 transition-all">
@@ -560,27 +596,243 @@ function RepositoryCard({ repo, onToggleConnection, isToggling }: RepositoryCard
         </div>
 
         {/* Connect Button */}
-        <button
-          onClick={onToggleConnection}
-          disabled={isToggling}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
-            repo.isConnected
-              ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
-              : "bg-secondary border border-border hover:border-accent hover:bg-accent"
-          }`}
-        >
-          {repo.isConnected ? (
-            <>
-              <Check className="w-3.5 h-3.5" />
-              Connected
-            </>
-          ) : (
-            <>
-              <Plus className="w-3.5 h-3.5" />
-              Connect
-            </>
+        <div className="flex shrink-0 items-center gap-2">
+          {canEditSettings && (
+            <button
+              onClick={onSettingsClick}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-accent hover:bg-accent hover:text-foreground"
+              title="Review settings"
+              aria-label={`Review settings for ${repo.fullName}`}
+            >
+              <Settings2 className="h-4 w-4" />
+            </button>
           )}
-        </button>
+          <button
+            onClick={onToggleConnection}
+            disabled={isToggling}
+            className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+              repo.isConnected
+                ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
+                : "bg-secondary border border-border hover:border-accent hover:bg-accent"
+            }`}
+          >
+            {repo.isConnected ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                Connected
+              </>
+            ) : (
+              <>
+                <Plus className="w-3.5 h-3.5" />
+                Connect
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ReviewSettingsModalProps {
+  repo: Repository;
+  onClose: () => void;
+}
+
+function ReviewSettingsModal({ repo, onClose }: ReviewSettingsModalProps) {
+  const [settings, setSettings] = useState<ReviewSettings>({
+    mode: "balanced",
+    minimumSeverityToPost: "warning",
+    customRules: "",
+    useRepositoryRules: true,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSettings() {
+      if (!repo.id) return;
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/repositories/${repo.id}/review-settings`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load review settings");
+        }
+
+        if (isMounted) {
+          setSettings({
+            mode: data.settings.mode,
+            minimumSeverityToPost: data.settings.minimumSeverityToPost,
+            customRules: data.settings.customRules ?? "",
+            useRepositoryRules: data.settings.useRepositoryRules,
+          });
+        }
+      } catch (error) {
+        toast.error("Failed to load review settings", {
+          description: error instanceof Error ? error.message : "Please try again.",
+        });
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadSettings();
+    return () => {
+      isMounted = false;
+    };
+  }, [repo.id]);
+
+  const saveSettings = async () => {
+    if (!repo.id) return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(`/api/repositories/${repo.id}/review-settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to save review settings");
+      }
+
+      toast.success("Review settings saved", {
+        description: `${repo.fullName} will use the updated review profile.`,
+      });
+      onClose();
+    } catch (error) {
+      toast.error("Failed to save review settings", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-xl border border-border bg-card shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-border p-5">
+          <div className="min-w-0">
+            <div className="mb-2 flex items-center gap-2 text-primary">
+              <ShieldCheck className="h-4 w-4" />
+              <span className="text-xs font-semibold uppercase tracking-wide">Review profile</span>
+            </div>
+            <h3 className="truncate text-lg font-semibold">{repo.fullName}</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-label="Close review settings"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center p-10 text-muted-foreground">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Loading settings...
+          </div>
+        ) : (
+          <div className="space-y-5 p-5">
+            <div>
+              <label className="mb-2 block text-sm font-medium">Review mode</label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {REVIEW_MODES.map((mode) => (
+                  <button
+                    key={mode.value}
+                    onClick={() => setSettings((current) => ({ ...current, mode: mode.value }))}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      settings.mode === mode.value
+                        ? "border-primary bg-primary/15 text-primary"
+                        : "border-border bg-secondary text-muted-foreground hover:border-accent hover:text-foreground"
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="space-y-2">
+                <span className="block text-sm font-medium">Minimum posted severity</span>
+                <select
+                  value={settings.minimumSeverityToPost}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      minimumSeverityToPost: event.target.value as ReviewSeverity,
+                    }))
+                  }
+                  className="w-full rounded-lg border border-border bg-secondary px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-primary"
+                >
+                  {SEVERITY_OPTIONS.map((severity) => (
+                    <option key={severity.value} value={severity.value}>
+                      {severity.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary px-4 py-3">
+                <span className="text-sm font-medium">Use repo rules file</span>
+                <input
+                  type="checkbox"
+                  checked={settings.useRepositoryRules}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      useRepositoryRules: event.target.checked,
+                    }))
+                  }
+                  className="h-4 w-4 accent-primary"
+                />
+              </label>
+            </div>
+
+            <label className="space-y-2">
+              <span className="block text-sm font-medium">Custom review rules</span>
+              <textarea
+                value={settings.customRules ?? ""}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    customRules: event.target.value,
+                  }))
+                }
+                rows={7}
+                placeholder="Example: Flag missing authorization checks on API routes. Prefer small, focused comments over broad style feedback."
+                className="w-full resize-y rounded-lg border border-border bg-secondary px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+              />
+            </label>
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-2 border-t border-border p-5">
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={saveSettings}
+            disabled={isLoading || isSaving}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-60"
+          >
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+            Save settings
+          </button>
+        </div>
       </div>
     </div>
   );

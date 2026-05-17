@@ -3,6 +3,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface Repository {
+  id: string | null;
   githubId: number;
   name: string;
   fullName: string;

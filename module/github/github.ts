@@ -543,14 +543,15 @@ export async function syncUserRepositories(
 
   const existingRepos = await db.repository.findMany({
     where: { userId },
-    select: { githubId: true, isConnected: true },
+    select: { id: true, githubId: true, isConnected: true },
   });
 
-  const connectedMap = new Map(
-    existingRepos.map((r) => [r.githubId, r.isConnected])
+  const existingRepoMap = new Map(
+    existingRepos.map((r) => [r.githubId, r])
   );
 
   const reposWithStatus = reposData.repos.map((repo) => ({
+    id: existingRepoMap.get(repo.databaseId)?.id ?? null,
     githubId: repo.databaseId,
     name: repo.name,
     fullName: repo.nameWithOwner,
@@ -562,7 +563,7 @@ export async function syncUserRepositories(
     forks: repo.forkCount,
     openIssues: repo.openIssues.totalCount,
     isPrivate: repo.isPrivate,
-    isConnected: connectedMap.get(repo.databaseId) ?? false,
+    isConnected: existingRepoMap.get(repo.databaseId)?.isConnected ?? false,
   }));
 
   return {
