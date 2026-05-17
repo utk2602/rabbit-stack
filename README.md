@@ -78,8 +78,8 @@ Important variables:
 
 - `DATABASE_URL`: PostgreSQL connection string.
 - `BETTER_AUTH_SECRET`: long random secret for Better Auth.
-- `BETTER_AUTH_URL`: app URL used by auth callbacks.
-- `NEXT_PUBLIC_BETTER_AUTH_URL`: public auth base URL for the client.
+- `BETTER_AUTH_URL`: app URL used by auth callbacks. In production this must be HTTPS, for example `https://rabbit-stack.vercel.app`.
+- `NEXT_PUBLIC_BETTER_AUTH_URL`: public auth base URL for the client. Use the same HTTPS origin in production.
 - `GITHUB_CLIENT_ID`: GitHub OAuth app client id.
 - `GITHUB_CLIENT_SECRET`: GitHub OAuth app client secret.
 - `DATA_ENCRYPTION_KEY`: base64-encoded 32-byte key for secret encryption.
@@ -194,6 +194,7 @@ npm run build
 Production checklist:
 
 - Configure a GitHub OAuth app callback for `${BETTER_AUTH_URL}/api/auth/callback/github`.
+  For Vercel this should look like `https://rabbit-stack.vercel.app/api/auth/callback/github`, not `http://...`.
 - Set `WEBHOOK_URL` to the public HTTPS app URL.
 - Set `DATA_ENCRYPTION_KEY` and keep it stable across deployments.
 - Run `npm run backfill:secrets` if migrating existing plaintext data.

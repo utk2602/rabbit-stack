@@ -3,6 +3,20 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { jwt } from "better-auth/plugins";
 import prisma from "./db";
 
+function getAuthBaseUrl() {
+  if (process.env.BETTER_AUTH_URL) {
+    return process.env.BETTER_AUTH_URL;
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  return "http://localhost:3000";
+}
+
+const authBaseUrl = getAuthBaseUrl();
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -17,7 +31,7 @@ export const auth = betterAuth({
   plugins: [
     jwt({
       jwt: {
-        issuer: process.env.BETTER_AUTH_URL,
+        issuer: authBaseUrl,
         audience: "rabbit-stack",
         expirationTime: "15 minutes",
         definePayload: ({ user, session }) => ({
@@ -34,5 +48,5 @@ export const auth = betterAuth({
     }),
   ],
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: authBaseUrl,
 });
