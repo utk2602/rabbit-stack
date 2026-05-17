@@ -84,6 +84,11 @@ model repository {
   isConnected   Boolean            @default(false)
   webhookId     Int?               // GitHub webhook ID for this repository
   webhookSecret String?            // Secret for verifying webhook payloads
+  lastWebhookDeliveryId String?
+  lastWebhookEvent      String?
+  lastWebhookStatus     String?
+  lastWebhookError      String?
+  lastWebhookAt         DateTime?
   userId        String
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
@@ -93,6 +98,7 @@ model repository {
 
   @@index([userId])
   @@index([isConnected])
+  @@index([lastWebhookStatus])
 }
 
 model pullRequestReview {

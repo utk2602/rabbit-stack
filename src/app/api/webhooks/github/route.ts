@@ -184,6 +184,27 @@ async function handlePingEvent(payload: WebhookPayload) {
   );
 }
 
+async function updateWebhookHealth(
+  repositoryId: string,
+  data: {
+    deliveryId: string | null;
+    event: string;
+    status: "valid" | "invalid" | "error";
+    error?: string | null;
+  }
+) {
+  await db.repository.update({
+    where: { id: repositoryId },
+    data: {
+      lastWebhookDeliveryId: data.deliveryId,
+      lastWebhookEvent: data.event,
+      lastWebhookStatus: data.status,
+      lastWebhookError: data.error ?? null,
+      lastWebhookAt: new Date(),
+    },
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
@@ -242,6 +263,12 @@ export async function POST(request: NextRequest) {
 
     if (!webhookSecret) {
       console.error("[Webhook] Connected repository has no webhook secret");
+      await updateWebhookHealth(repository.id, {
+        deliveryId,
+        event,
+        status: "invalid",
+        error: "Missing webhook secret",
+      });
       await safeRecordAuditEvent({
         event: "webhook.secret.missing",
         userId: repository.userId,
@@ -264,6 +291,12 @@ export async function POST(request: NextRequest) {
 
     if (!isValid) {
       console.error("[Webhook] Invalid signature");
+      await updateWebhookHealth(repository.id, {
+        deliveryId,
+        event,
+        status: "invalid",
+        error: "Invalid webhook signature",
+      });
       await safeRecordAuditEvent({
         event: "webhook.signature.invalid",
         userId: repository.userId,
@@ -310,6 +343,12 @@ export async function POST(request: NextRequest) {
       default:
         console.log(`[Webhook] Unhandled event type: ${event}`);
     }
+
+    await updateWebhookHealth(repository.id, {
+      deliveryId,
+      event,
+      status: "valid",
+    });
 
     return NextResponse.json({ 
       success: true, 

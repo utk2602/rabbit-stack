@@ -11,6 +11,7 @@ export interface SecuritySummary {
     connected: number;
     missingSecret: number;
     missingWebhookId: number;
+    invalidRecent: number;
   };
   reviews: {
     failed: number;
@@ -63,6 +64,7 @@ export async function getSecuritySummary(userId: string): Promise<SecuritySummar
           isConnected: true,
           webhookId: true,
           webhookSecret: true,
+          lastWebhookStatus: true,
         },
       }),
       db.pullRequestReview.count({
@@ -117,6 +119,9 @@ export async function getSecuritySummary(userId: string): Promise<SecuritySummar
       connected: connectedRepos.length,
       missingSecret: connectedRepos.filter((repo) => !repo.webhookSecret).length,
       missingWebhookId: connectedRepos.filter((repo) => !repo.webhookId).length,
+      invalidRecent: connectedRepos.filter(
+        (repo) => repo.lastWebhookStatus === "invalid"
+      ).length,
     },
     reviews: {
       failed: failedReviews,

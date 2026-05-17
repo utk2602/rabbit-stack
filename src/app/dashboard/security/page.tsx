@@ -107,7 +107,7 @@ export default async function SecurityPage() {
           <StatCard
             title="Webhook Trust"
             value={`${summary.webhooks.connected}`}
-            detail={`${summary.webhooks.missingSecret} missing secrets, ${summary.webhooks.missingWebhookId} missing webhook IDs.`}
+            detail={`${summary.webhooks.missingSecret} missing secrets, ${summary.webhooks.missingWebhookId} missing IDs, ${summary.webhooks.invalidRecent} recent invalid deliveries.`}
             icon={RadioTower}
             status={webhookStatus}
           />
