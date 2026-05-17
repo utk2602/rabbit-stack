@@ -52,6 +52,14 @@ model session {
   user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model jwks {
+  id         String    @id @default(cuid())
+  publicKey  String
+  privateKey String
+  createdAt  DateTime
+  expiresAt  DateTime?
+}
+
 model verification {
   id         String   @id
   identifier String

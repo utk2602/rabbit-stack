@@ -3,14 +3,9 @@
 import type React from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import {
-InputGroup,
-InputGroupAddon,
-InputGroupInput,
-} from "@/components/ui/input-group";
 import { FloatingPaths } from "@/components/floating-paths";
-import { X, AtSignIcon, Loader2 } from "lucide-react";
-import { signIn, signUp } from "@/lib/auth-client";
+import { X, Loader2 } from "lucide-react";
+import { signIn } from "@/lib/auth-client";
 import { toast } from "sonner";
 
 interface AuthModalProps {
@@ -21,10 +16,6 @@ onClose: () => void;
 export function AuthModal({ open, onClose }: AuthModalProps) {
 const [isLoading, setIsLoading] = useState(false);
 const [error, setError] = useState<string | null>(null);
-const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-const [isSignUp, setIsSignUp] = useState(false);
-const [name, setName] = useState("");
 
 const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -40,10 +31,6 @@ document.body.style.overflow = "";
 const handleClose = useCallback(() => {
 onClose();
 setError(null);
-setEmail("");
-setPassword("");
-setName("");
-setIsSignUp(false);
 setIsLoading(false);
 }, [onClose]);
 
@@ -68,51 +55,6 @@ toast.success("Redirecting to GitHub...");
 } catch (err: any) {
 console.error("GitHub sign-in error:", err);
 const msg = err.message || "Failed to sign in with GitHub";
-setError(msg);
-toast.error(msg);
-setIsLoading(false);
-}
-};
-
-const handleEmailAuth = async (e: React.FormEvent) => {
-e.preventDefault();
-if (!email || !password) {
-setError("Please enter both email and password");
-toast.error("Please enter both email and password");
-return;
-}
-setIsLoading(true);
-setError(null);
-try {
-if (isSignUp) {
-const result = await signUp.email({
-email,
-password,
-name: name || email.split("@")[0],
-});
-if (result.error) {
-const msg = result.error.message || "Failed to create account";
-setError(msg);
-toast.error(msg);
-setIsLoading(false);
-return;
-}
-toast.success("Account created! Redirecting...");
-} else {
-const result = await signIn.email({ email, password });
-if (result.error) {
-const msg = result.error.message || "Failed to sign in";
-setError(msg);
-toast.error(msg);
-setIsLoading(false);
-return;
-}
-toast.success("Signed in successfully!");
-}
-window.location.href = "/dashboard";
-} catch (err: any) {
-console.error("Email auth error:", err);
-const msg = err.message || "Authentication failed";
 setError(msg);
 toast.error(msg);
 setIsLoading(false);
@@ -190,12 +132,10 @@ className="absolute inset-0 isolate -z-10 opacity-60 contain-strict"
 
 <div className="flex flex-col space-y-1">
 <h1 className="font-bold text-2xl tracking-wide">
-{isSignUp ? "Create Account" : "Sign In or Join Now!"}
+Sign in with GitHub
 </h1>
 <p className="text-base text-muted-foreground">
-{isSignUp
-? "Create your Rabbit Stack account."
-: "Login or create your Rabbit Stack account."}
+Rabbit Stack uses GitHub OAuth only. No password account is needed.
 </p>
 </div>
 
@@ -220,75 +160,10 @@ Continue with GitHub
 </Button>
 </div>
 
-<div className="flex w-full items-center justify-center">
-<div className="h-px w-full bg-border" />
-<span className="px-2 text-muted-foreground text-xs">OR</span>
-<div className="h-px w-full bg-border" />
+<div className="rounded-lg border border-border bg-secondary/60 p-4 text-sm text-muted-foreground">
+GitHub grants repository access for webhooks and PR reviews. Short-lived JWTs
+are available from <code>/api/auth/token</code> after sign-in.
 </div>
-
-<form className="space-y-2" onSubmit={handleEmailAuth}>
-<p className="text-start text-muted-foreground text-xs">
-{isSignUp
-? "Create an account with your email"
-: "Enter your email address to sign in"}
-</p>
-
-{isSignUp && (
-<InputGroup>
-<InputGroupInput
-placeholder="Your name"
-type="text"
-value={name}
-onChange={(e) => setName(e.target.value)}
-/>
-<InputGroupAddon align="inline-start">
-<AtSignIcon />
-</InputGroupAddon>
-</InputGroup>
-)}
-
-<InputGroup>
-<InputGroupInput
-placeholder="your.email@example.com"
-type="email"
-value={email}
-onChange={(e) => setEmail(e.target.value)}
-/>
-<InputGroupAddon align="inline-start">
-<AtSignIcon />
-</InputGroupAddon>
-</InputGroup>
-
-<InputGroup>
-<InputGroupInput
-placeholder="Password"
-type="password"
-value={password}
-onChange={(e) => setPassword(e.target.value)}
-/>
-<InputGroupAddon align="inline-start">
-<LockIcon />
-</InputGroupAddon>
-</InputGroup>
-
-<Button className="w-full" type="submit" disabled={isLoading}>
-{isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-{isSignUp ? "Create Account" : "Continue With Email"}
-</Button>
-</form>
-
-<button
-type="button"
-onClick={() => {
-setIsSignUp(!isSignUp);
-setError(null);
-}}
-className="text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-center"
->
-{isSignUp
-? "Already have an account? Sign in"
-: "Don't have an account? Sign up"}
-</button>
 
 <p className="mt-8 text-muted-foreground text-sm">
 By clicking continue, you agree to our{" "}
@@ -314,13 +189,6 @@ Privacy Policy
 </div>
 );
 }
-
-const LockIcon = (props: React.ComponentProps<"svg">) => (
-<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-<path d="M7 11V7a5 5 0 0 1 10 0v4" />
-</svg>
-);
 
 const GithubIcon = (props: React.ComponentProps<"svg">) => (
 <svg fill="currentColor" viewBox="0 0 1024 1024" {...props}>

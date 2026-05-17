@@ -1,83 +1,205 @@
 # Rabbit Stack
 
-Rabbit Stack connects GitHub repositories, indexes code for AI review context,
-and posts pull request reviews through GitHub webhooks.
+Rabbit Stack is a self-hosted AI code-review platform for GitHub repositories.
+It signs users in with GitHub OAuth, listens to GitHub webhooks, indexes safe
+repository context, and posts structured pull request reviews back to GitHub.
 
-## Getting Started
+The app is built for teams that want fast review feedback without handing every
+piece of source code to a SaaS product by default. Secrets are encrypted,
+webhooks are verified, indexing avoids sensitive files, and raw code snippets in
+Pinecone are opt-in.
 
-Install dependencies and prepare your environment:
+## Features
+
+- GitHub OAuth-only sign-in with JWT support through Better Auth.
+- Short-lived JWT access tokens at `/api/auth/token` and JWKS at `/api/auth/jwks`.
+- GitHub repository sync, connect, disconnect, webhook creation, and manual reindexing.
+- Fail-closed GitHub webhook signature verification.
+- AI pull request reviews with overview, walkthrough, suggestions, issues, inline comments, and GitHub posting.
+- Per-repository review profiles for mode, minimum posted severity, custom rules, and repository rule files.
+- Repository-local rules from `.rabbitstack.yml`, `.rabbitstack.yaml`, `.github/rabbitstack.yml`, or `.github/rabbitstack.yaml`.
+- Codebase indexing with sensitive-file filters for env files, credentials, generated output, dependency folders, binaries, lockfiles, and oversized files.
+- Pinecone vector context with raw code metadata disabled unless explicitly enabled.
+- Security dashboard for encrypted secrets, webhook health, indexing health, review failures, dependency risk, and recent audit events.
+- Dependency audit ingestion, security events API, health endpoint, review retry, review retention cleanup, rate limiting, same-origin checks, and security headers.
+
+## Tech Stack
+
+- Next.js App Router and React
+- TypeScript
+- PostgreSQL with Prisma
+- Better Auth with GitHub OAuth and JWT plugin
+- GitHub REST and GraphQL APIs through Octokit
+- Inngest background jobs
+- OpenAI embeddings
+- Pinecone vector database
+- Google Gemini via AI SDK
+- Tailwind CSS
+
+## Architecture
+
+1. A user signs in with GitHub OAuth.
+2. Better Auth stores the GitHub account token and can issue a short-lived JWT.
+3. The user connects a GitHub repository.
+4. Rabbit Stack verifies repository metadata with GitHub and creates a webhook.
+5. A repository indexing job fetches safe source files, chunks them, embeds them, and stores vectors in Pinecone.
+6. GitHub sends pull request webhooks to `/api/webhooks/github`.
+7. The webhook handler verifies the HMAC signature and queues a review job in Inngest.
+8. The review job fetches PR details, gets relevant vector context, applies repository review settings, generates review output, stores it, and posts it to GitHub.
+9. Security, audit, dependency, webhook, and indexing status are surfaced in the dashboard.
+
+## Authentication
+
+Rabbit Stack intentionally supports only:
+
+- GitHub OAuth for user sign-in.
+- JWT issuance for authenticated API access.
+
+Email/password, Google, Apple, magic link, and other authentication methods are not enabled.
+
+Relevant endpoints:
+
+- `/api/auth/sign-in/social` for GitHub OAuth through the Better Auth client.
+- `/api/auth/token` to issue a short-lived JWT for an authenticated session.
+- `/api/auth/jwks` to expose public keys for JWT verification.
+- `/api/auth/sign-out` for logout through the Better Auth client.
+
+GitHub OAuth requires `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`. The app requests `read:user`, `user:email`, and `repo` scopes so it can read repositories, create webhooks, and post reviews.
+
+## Environment
+
+Copy the example file and fill in real values:
+
+```bash
+cp .env.example .env
+```
+
+Important variables:
+
+- `DATABASE_URL`: PostgreSQL connection string.
+- `BETTER_AUTH_SECRET`: long random secret for Better Auth.
+- `BETTER_AUTH_URL`: app URL used by auth callbacks.
+- `NEXT_PUBLIC_BETTER_AUTH_URL`: public auth base URL for the client.
+- `GITHUB_CLIENT_ID`: GitHub OAuth app client id.
+- `GITHUB_CLIENT_SECRET`: GitHub OAuth app client secret.
+- `DATA_ENCRYPTION_KEY`: base64-encoded 32-byte key for secret encryption.
+- `WEBHOOK_URL`: public HTTPS URL GitHub can call.
+- `GOOGLE_GENERATIVE_AI_API_KEY`: Gemini API key for reviews.
+- `PINECONE_API_KEY`: Pinecone API key.
+- `PINECONE_INDEX_NAME`: Pinecone index name.
+- `PINECONE_STORE_CODE_SNIPPETS`: set to `true` only if you want raw code snippets in vector metadata.
+- `REVIEW_RETENTION_DAYS`: retention window used by `npm run reviews:prune`.
+
+Generate `DATA_ENCRYPTION_KEY` with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+## Setup
+
+Install dependencies:
 
 ```bash
 npm install
-cp .env.example .env
-npm run security:env
+```
+
+Generate Prisma client and apply migrations:
+
+```bash
+npx prisma generate
 npx prisma migrate deploy
 ```
 
-Run the development server:
+Validate security environment:
+
+```bash
+npm run security:env
+```
+
+Start development:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-## Security Setup
-
-- Set `DATA_ENCRYPTION_KEY` before storing tokens or OpenAI keys. Generate it with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
-- Run `npm run backfill:secrets` after adding encryption to an existing database.
-- Set `WEBHOOK_URL` to a public HTTPS app URL in production. Local webhook bypass is only for development.
-- Leave `PINECONE_STORE_CODE_SNIPPETS=false` unless you intentionally want raw code snippets stored in Pinecone metadata.
-- Run `npm run audit:ingest` after dependency audits so the security dashboard shows current dependency risk.
-- Run `npm run reviews:prune` on a schedule to remove old stored review payloads. Tune with `REVIEW_RETENTION_DAYS`.
-
-## What Was Added
-
-- Encrypted storage for OpenAI keys, GitHub account tokens, and webhook secrets.
-- Fail-closed GitHub webhook verification with health tracking and audit events.
-- Security dashboard for secret hygiene, webhook health, indexing health, dependency risk, and recent audit events.
-- Dependency audit ingestion with historical storage.
-- Review profiles per repository with mode, minimum posted severity, custom rules, and repo-local rules files.
-- Sensitive-file indexing filters for env files, credentials, generated output, dependency folders, binaries, lockfiles, and oversized files.
-- Pinecone metadata privacy: raw code snippets are opt-in with `PINECONE_STORE_CODE_SNIPPETS=true`.
-- Repository indexing lifecycle tracking, manual reindex controls, and health reporting.
-- Retry controls for failed pull request reviews.
-- Same-origin and rate-limit protections on sensitive mutation routes.
-- Security headers, health checks, retention cleanup, and release checklist scripts.
+For local webhook testing, use a public tunnel and set `WEBHOOK_URL` to that tunnel URL. `ALLOW_LOCAL_WEBHOOK_BYPASS=true` is available only for development flows where webhook delivery is not required.
 
 ## Review Rules
 
-Connected repositories can define review behavior in the app UI. Teams can also
-commit repository-local rules in one of these files:
+Repository owners can configure review settings in the Repositories UI. Teams can also commit repository-local rules:
+
+```yaml
+review:
+  focus:
+    - authorization and access control
+    - database migrations and retention
+    - webhook verification and secret handling
+  ignore:
+    - generated files
+    - formatting-only diffs
+```
+
+Supported paths:
 
 - `.rabbitstack.yml`
 - `.rabbitstack.yaml`
 - `.github/rabbitstack.yml`
 - `.github/rabbitstack.yaml`
 
-Example:
+## Security Model
 
-```yaml
-review:
-  focus:
-    - security-sensitive authorization changes
-    - database migrations and data retention
-  ignore:
-    - generated files
-    - cosmetic formatting-only diffs
-```
+- OpenAI keys, GitHub tokens, and webhook secrets are encrypted before storage.
+- GitHub webhook payloads are verified with HMAC SHA-256 and fail closed.
+- Mutation routes use same-origin checks and rate limits.
+- Next.js security headers include frame protection, content sniffing protection, referrer policy, permissions policy, CSP, and production HSTS.
+- Indexing skips obvious secrets, generated files, vendored folders, lockfiles, binaries, and oversized files.
+- Pinecone stores content hashes by default, not raw source snippets.
+- Audit events record sensitive operations such as repository connections, webhook failures, review failures, reindex requests, and settings changes.
+- `/api/health` checks the app, database, and encryption key configuration.
 
-## Useful Scripts
+## Scripts
 
-- `npm run dev` starts the Next.js app.
-- `npm run build` creates a production build.
-- `npm run security:env` validates required security environment variables.
-- `npm run security:check` runs release-oriented security and type checks.
-- `npm run backfill:secrets` encrypts legacy plaintext secrets.
-- `npm run audit:ingest` stores the latest npm audit result for the dashboard.
-- `npm run reviews:prune` deletes review records older than the configured retention window.
+- `npm run dev`: start the development server.
+- `npm run build`: build the production app.
+- `npm run start`: run the production server.
+- `npm run lint`: run ESLint.
+- `npm run security:env`: validate required security environment variables.
+- `npm run security:check`: run release-oriented Prisma, TypeScript, and security checks.
+- `npm run backfill:secrets`: encrypt legacy plaintext secrets.
+- `npm run audit:ingest`: ingest the latest npm audit summary into the database.
+- `npm run reviews:prune`: delete old pull request review records using `REVIEW_RETENTION_DAYS`.
+
+## Operational Endpoints
+
+- `GET /api/health`: app health and core dependency checks.
+- `GET /api/security/summary`: authenticated security dashboard summary.
+- `GET /api/security/events`: authenticated audit event feed.
+- `GET /api/security/dependencies`: authenticated dependency audit summary.
+- `POST /api/repositories/:repositoryId/reindex`: queue a repository reindex.
+- `POST /api/reviews/:reviewId/retry`: retry a failed review.
 
 ## Deployment
 
-Before deploying, run `npm run security:check`, `npx prisma migrate deploy`, and
-`npm run build`.
+Before deploying:
+
+```bash
+npm run security:check
+npx prisma migrate deploy
+npm run build
+```
+
+Production checklist:
+
+- Configure a GitHub OAuth app callback for `${BETTER_AUTH_URL}/api/auth/callback/github`.
+- Set `WEBHOOK_URL` to the public HTTPS app URL.
+- Set `DATA_ENCRYPTION_KEY` and keep it stable across deployments.
+- Run `npm run backfill:secrets` if migrating existing plaintext data.
+- Run `npm run audit:ingest` after dependency audits.
+- Schedule `npm run reviews:prune` if you want bounded review retention.
+
+## Notes
+
+This repository contains generated Prisma output under ignored paths. Regenerate it with `npx prisma generate` after schema changes.
