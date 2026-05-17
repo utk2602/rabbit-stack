@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "backfill:secrets": "tsx Scripts/backfill-encrypted-secrets.ts"
+    "backfill:secrets": "tsx Scripts/backfill-encrypted-secrets.ts",
+    "audit:ingest": "tsx Scripts/ingest-dependency-audit.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.14",
