@@ -89,6 +89,11 @@ model repository {
   lastWebhookStatus     String?
   lastWebhookError      String?
   lastWebhookAt         DateTime?
+  indexingStatus        String             @default("not_started")
+  lastIndexedAt         DateTime?
+  lastIndexError        String?            @db.Text
+  indexedFileCount      Int                @default(0)
+  indexedChunkCount     Int                @default(0)
   userId        String
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
@@ -100,6 +105,7 @@ model repository {
   @@index([userId])
   @@index([isConnected])
   @@index([lastWebhookStatus])
+  @@index([indexingStatus])
 }
 
 model pullRequestReview {
