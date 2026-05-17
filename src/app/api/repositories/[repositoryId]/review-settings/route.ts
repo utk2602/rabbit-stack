@@ -59,11 +59,20 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const { repositoryId } = await context.params;
   const body = await request.json();
-  const settings = await updateRepositoryReviewSettings(
-    repositoryId,
-    session.user.id,
-    body
-  );
+  let settings;
+
+  try {
+    settings = await updateRepositoryReviewSettings(
+      repositoryId,
+      session.user.id,
+      body
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Invalid review settings" },
+      { status: 400 }
+    );
+  }
 
   if (!settings) {
     return NextResponse.json({ error: "Repository not found" }, { status: 404 });

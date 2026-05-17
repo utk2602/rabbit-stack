@@ -12,6 +12,7 @@ export const REVIEW_SEVERITIES = ["info", "warning", "error"] as const;
 
 export type ReviewMode = (typeof REVIEW_MODES)[number];
 export type ReviewSeverity = (typeof REVIEW_SEVERITIES)[number];
+export const MAX_CUSTOM_RULES_LENGTH = 4000;
 
 export interface ReviewSettingsInput {
   mode?: ReviewMode;
@@ -48,7 +49,13 @@ export function sanitizeReviewSettings(input: ReviewSettingsInput) {
   }
 
   if (input.customRules !== undefined) {
-    data.customRules = input.customRules?.trim() || null;
+    const customRules = input.customRules?.trim() || null;
+    if (customRules && customRules.length > MAX_CUSTOM_RULES_LENGTH) {
+      throw new Error(
+        `Custom review rules must be ${MAX_CUSTOM_RULES_LENGTH} characters or fewer`
+      );
+    }
+    data.customRules = customRules;
   }
 
   if (input.useRepositoryRules !== undefined) {
