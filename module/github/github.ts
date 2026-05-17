@@ -923,6 +923,48 @@ export interface RepoFile {
   content: string;
 }
 
+export async function getRepoTextFile(
+  token: string,
+  owner: string,
+  repo: string,
+  path: string
+): Promise<string | null> {
+  const octokit = new Octokit({ auth: token });
+
+  try {
+    const { data } = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path,
+    });
+
+    if (Array.isArray(data) || data.type !== "file") {
+      return null;
+    }
+
+    if (!shouldIndexRepoFile(data.path, data.size)) {
+      return null;
+    }
+
+    if ("content" in data && data.encoding === "base64") {
+      return Buffer.from(data.content, "base64").toString("utf-8");
+    }
+
+    return null;
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      error.status === 404
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 export async function getRepoFileContent(
   token: string,
   owner: string,

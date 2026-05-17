@@ -4,6 +4,7 @@ import {
   getGithubToken,
   getPullRequestDetails,
   getPullRequestFiles,
+  getRepoTextFile,
   createPullRequestReview,
 } from "../../module/github/github";
 import {
@@ -37,6 +38,13 @@ const severityRank: Record<ReviewSeverity, number> = {
   warning: 1,
   error: 2,
 };
+
+const REPOSITORY_RULE_PATHS = [
+  ".rabbitstack.yml",
+  ".rabbitstack.yaml",
+  ".github/rabbitstack.yml",
+  ".github/rabbitstack.yaml",
+];
 
 function shouldPostSeverity(
   severity: ReviewSeverity,
@@ -130,6 +138,21 @@ export const reviewPullRequest = inngest.createFunction(
       return db.repositoryReviewSettings.findUnique({
         where: { repositoryId },
       });
+    });
+
+    const repositoryRules = await step.run("get-repository-rules", async () => {
+      if (reviewSettings?.useRepositoryRules === false) {
+        return null;
+      }
+
+      for (const path of REPOSITORY_RULE_PATHS) {
+        const content = await getRepoTextFile(token, owner, repo, path);
+        if (content?.trim()) {
+          return `Rules from ${path}:\n${content.trim()}`;
+        }
+      }
+
+      return null;
     });
 
     try {
@@ -227,7 +250,9 @@ export const reviewPullRequest = inngest.createFunction(
         })),
         relevantContext: relevantContext ?? undefined,
         reviewMode: reviewSettings?.mode ?? "balanced",
-        customRules: reviewSettings?.customRules ?? null,
+        customRules: [reviewSettings?.customRules, repositoryRules]
+          .filter(Boolean)
+          .join("\n\n") || null,
       };
 
       // Generate AI review
