@@ -6,6 +6,7 @@ import {
   KeyRound,
   RadioTower,
   ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { requireAuth } from "../../../../lib/auth-utils";
 import { getSecuritySummary } from "../../../../lib/security-summary";
@@ -64,6 +65,12 @@ export default async function SecurityPage() {
         : "good";
   const reviewStatus = summary.reviews.failed > 0 ? "warn" : "good";
   const auditStatus = summary.audit.recentFailures > 0 ? "warn" : "good";
+  const dependencyStatus =
+    !summary.dependencies.latest || summary.dependencies.latest.critical > 0
+      ? "bad"
+      : summary.dependencies.latest.high > 0
+        ? "warn"
+        : "good";
 
   return (
     <div className="min-h-screen bg-background px-6 py-8">
@@ -96,7 +103,7 @@ export default async function SecurityPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <StatCard
             title="Encrypted Secrets"
             value={`${summary.secrets.encrypted}`}
@@ -124,6 +131,17 @@ export default async function SecurityPage() {
             detail="Error-severity audit events in the recent activity feed."
             icon={Activity}
             status={auditStatus}
+          />
+          <StatCard
+            title="Dependency Risk"
+            value={`${summary.dependencies.latest?.total ?? 0}`}
+            detail={
+              summary.dependencies.latest
+                ? `${summary.dependencies.latest.critical} critical, ${summary.dependencies.latest.high} high, ${summary.dependencies.latest.fixable} fixable.`
+                : "No dependency audit has been ingested yet."
+            }
+            icon={ShieldAlert}
+            status={dependencyStatus}
           />
         </section>
 
@@ -241,6 +259,51 @@ export default async function SecurityPage() {
                   })
                 )}
               </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-5">
+              <h2 className="text-lg font-semibold tracking-normal">
+                Dependency Audit
+              </h2>
+              {summary.dependencies.latest ? (
+                <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-lg border border-border p-3">
+                    <p className="text-muted-foreground">Total</p>
+                    <p className="mt-1 text-2xl font-semibold">
+                      {summary.dependencies.latest.total}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3">
+                    <p className="text-red-100">Critical</p>
+                    <p className="mt-1 text-2xl font-semibold text-red-100">
+                      {summary.dependencies.latest.critical}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
+                    <p className="text-amber-100">High</p>
+                    <p className="mt-1 text-2xl font-semibold text-amber-100">
+                      {summary.dependencies.latest.high}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border p-3">
+                    <p className="text-muted-foreground">Fixable</p>
+                    <p className="mt-1 text-2xl font-semibold">
+                      {summary.dependencies.latest.fixable}
+                    </p>
+                  </div>
+                  <p className="col-span-2 text-xs text-muted-foreground">
+                    Last ingested{" "}
+                    {new Date(
+                      summary.dependencies.latest.createdAt
+                    ).toLocaleString()}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Run `npm run audit:ingest` to capture the latest production
+                  dependency audit.
+                </p>
+              )}
             </div>
 
             <div className="rounded-lg border border-border bg-card p-5">

@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { getLatestDependencyAudit } from "./dependency-audit";
 import { isEncryptedSecret } from "./secrets";
 
 export interface SecuritySummary {
@@ -37,6 +38,9 @@ export interface SecuritySummary {
       repository?: string | null;
     }>;
   };
+  dependencies: {
+    latest: Awaited<ReturnType<typeof getLatestDependencyAudit>>;
+  };
 }
 
 function countSecret(value: string | null | undefined) {
@@ -50,7 +54,15 @@ function countSecret(value: string | null | undefined) {
 }
 
 export async function getSecuritySummary(userId: string): Promise<SecuritySummary> {
-  const [settings, accounts, repositories, failedReviews, inProgressReviews, recentEvents] =
+  const [
+    settings,
+    accounts,
+    repositories,
+    failedReviews,
+    inProgressReviews,
+    recentEvents,
+    latestDependencyAudit,
+  ] =
     await Promise.all([
       db.settings.findUnique({
         where: { userId },
@@ -103,6 +115,7 @@ export async function getSecuritySummary(userId: string): Promise<SecuritySummar
         orderBy: { createdAt: "desc" },
         take: 8,
       }),
+      getLatestDependencyAudit(),
     ]);
 
   const secretCounts = [
@@ -161,6 +174,9 @@ export async function getSecuritySummary(userId: string): Promise<SecuritySummar
         createdAt: event.createdAt.toISOString(),
         repository: event.repository?.fullName ?? null,
       })),
+    },
+    dependencies: {
+      latest: latestDependencyAudit,
     },
   };
 }
