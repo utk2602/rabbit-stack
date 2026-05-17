@@ -70,7 +70,7 @@ model Test {
 
 model repository {
   id            String             @id @default(cuid())
-  githubId      Int                @unique
+  githubId      Int
   name          String
   fullName      String
   description   String?
@@ -106,6 +106,7 @@ model repository {
   @@index([isConnected])
   @@index([lastWebhookStatus])
   @@index([indexingStatus])
+  @@unique([userId, githubId])
 }
 
 model pullRequestReview {
