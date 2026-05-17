@@ -2,6 +2,7 @@ import { db } from "../../lib/db";
 import { Octokit } from "octokit";
 import crypto from "crypto";
 import { decryptOptionalSecret, encryptSecret } from "../../lib/secrets";
+import { shouldIndexRepoFile } from "../../lib/indexing-filters";
 
 const GITHUB_GRAPHQL_API = "https://api.github.com/graphql";
 const GITHUB_REST_API = "https://api.github.com";
@@ -903,8 +904,6 @@ export async function toggleRepositoryConnection(
   return { isConnected: false };
 }
 
-const BINARY_EXTENSIONS = /\.(png|jpg|jpeg|gif|bmp|tiff|webp|ico|mp4|mp3|mov|avi|mkv|exe|dll|bin|class|jar|zip|tar|gz|rar|7z|pdf|doc|docx|xls|xlsx|ppt|pptx|woff|woff2|ttf|eot|svg|lock|node)$/i;
-
 export interface RepoFile {
   path: string;
   content: string;
@@ -930,10 +929,10 @@ export async function getRepoFileContent(
 
     for (const item of items) {
       if (item.type === "dir") {
+        if (!shouldIndexRepoFile(item.path)) continue;
         await fetchDirectory(item.path);
       } else if (item.type === "file") {
-        if (BINARY_EXTENSIONS.test(item.name)) continue;
-        if (item.size > 100000) continue;
+        if (!shouldIndexRepoFile(item.path, item.size)) continue;
 
         try {
           const { data: fileData } = await octokit.rest.repos.getContent({
