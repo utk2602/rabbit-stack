@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { toast } from "sonner";
 import {
   GitPullRequest,
   Clock,
@@ -17,6 +18,7 @@ import {
   Info,
   Search,
   Filter,
+  RotateCcw,
 } from "lucide-react";
 
 interface ReviewComment {
@@ -64,6 +66,7 @@ export function ReviewActivityClient({ reviews }: ReviewActivityClientProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [retryingId, setRetryingId] = useState<string | null>(null);
 
   const filteredReviews = reviews.filter((r) => {
     const matchesSearch =
@@ -81,6 +84,36 @@ export function ReviewActivityClient({ reviews }: ReviewActivityClientProps) {
     pending: reviews.filter((r) => r.status === "pending").length,
     in_progress: reviews.filter((r) => r.status === "in_progress").length,
     failed: reviews.filter((r) => r.status === "failed").length,
+  };
+
+  const handleRetry = async (review: Review) => {
+    setRetryingId(review.id);
+    toast.loading(`Queueing retry for #${review.pullNumber}...`, {
+      id: `retry-review-${review.id}`,
+    });
+
+    try {
+      const response = await fetch(`/api/reviews/${review.id}/retry`, {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to queue retry");
+      }
+
+      toast.success(`Review retry queued for #${review.pullNumber}`, {
+        id: `retry-review-${review.id}`,
+      });
+      window.location.reload();
+    } catch (error) {
+      toast.error("Failed to queue retry", {
+        id: `retry-review-${review.id}`,
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setRetryingId(null);
+    }
   };
 
   return (
@@ -161,6 +194,8 @@ export function ReviewActivityClient({ reviews }: ReviewActivityClientProps) {
                 onToggle={() =>
                   setExpandedId(expandedId === review.id ? null : review.id)
                 }
+                onRetry={() => handleRetry(review)}
+                isRetrying={retryingId === review.id}
               />
             ))}
           </div>
@@ -207,10 +242,14 @@ function ReviewCard({
   review,
   isExpanded,
   onToggle,
+  onRetry,
+  isRetrying,
 }: {
   review: Review;
   isExpanded: boolean;
   onToggle: () => void;
+  onRetry: () => void;
+  isRetrying: boolean;
 }) {
   const statusConfig: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
     completed: {
@@ -311,11 +350,21 @@ function ReviewCard({
                 {review.tokensUsed.toLocaleString()} tokens
               </span>
             )}
-            {review.postedToGithub && (
+          {review.postedToGithub && (
               <span className="flex items-center gap-1 text-green-500">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Posted to GitHub
               </span>
+            )}
+            {review.status === "failed" && (
+              <button
+                onClick={onRetry}
+                disabled={isRetrying}
+                className="ml-auto flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-accent hover:bg-accent hover:text-foreground disabled:opacity-60"
+              >
+                <RotateCcw className={`h-3.5 w-3.5 ${isRetrying ? "animate-spin" : ""}`} />
+                Retry
+              </button>
             )}
             <a
               href={review.pullUrl}
