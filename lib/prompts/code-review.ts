@@ -29,6 +29,8 @@ export interface ReviewContext {
     patch?: string;
   }[];
   relevantContext?: string; // RAG context from codebase
+  reviewMode?: string;
+  customRules?: string | null;
 }
 
 export const CODE_REVIEW_SYSTEM_PROMPT = `You are an expert code reviewer with deep knowledge of software engineering best practices, security, performance, and clean code principles.
@@ -77,6 +79,14 @@ ${context.prDescription || "_No description provided_"}
 
 ## Changed Files Overview
 ${filesOverview}
+
+## Review Configuration
+- **Mode**: ${context.reviewMode ?? "balanced"}
+${
+  context.customRules
+    ? `- **Custom Rules**:\n${context.customRules}`
+    : "- **Custom Rules**: _None configured_"
+}
 
 ## Code Changes (Diffs)
 ${patches}
@@ -166,6 +176,13 @@ Generate a JSON array of inline comments for significant issues. Focus on:
 - Performance issues
 - Code quality problems
 - Missing error handling
+
+Review mode: ${context.reviewMode ?? "balanced"}
+${
+  context.customRules
+    ? `Custom rules to honor:\n${context.customRules}\n`
+    : ""
+}
 
 Return ONLY the JSON array, no additional text.`;
 }

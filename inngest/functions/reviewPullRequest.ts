@@ -17,6 +17,7 @@ import { generateEmbedding } from "../../lib/embeddings";
 import type { ReviewContext } from "../../lib/prompts/code-review";
 import { decryptOptionalSecret } from "../../lib/secrets";
 import { safeRecordAuditEvent } from "../../lib/audit";
+import type { ReviewSeverity } from "../../lib/review-settings";
 
 interface ReviewRequestEvent {
   name: "pull_request.review_requested";
@@ -29,6 +30,24 @@ interface ReviewRequestEvent {
     headSha: string;
     action: "opened" | "synchronize" | "reopened";
   };
+}
+
+const severityRank: Record<ReviewSeverity, number> = {
+  info: 0,
+  warning: 1,
+  error: 2,
+};
+
+function shouldPostSeverity(
+  severity: ReviewSeverity,
+  minimumSeverity: string
+) {
+  const minimum =
+    minimumSeverity in severityRank
+      ? (minimumSeverity as ReviewSeverity)
+      : "warning";
+
+  return severityRank[severity] >= severityRank[minimum];
 }
 
 export const reviewPullRequest = inngest.createFunction(
@@ -104,6 +123,12 @@ export const reviewPullRequest = inngest.createFunction(
           author: "",
           status: "in_progress",
         },
+      });
+    });
+
+    const reviewSettings = await step.run("get-review-settings", async () => {
+      return db.repositoryReviewSettings.findUnique({
+        where: { repositoryId },
       });
     });
 
@@ -196,6 +221,8 @@ export const reviewPullRequest = inngest.createFunction(
           patch: f.patch,
         })),
         relevantContext: relevantContext ?? undefined,
+        reviewMode: reviewSettings?.mode ?? "balanced",
+        customRules: reviewSettings?.customRules ?? null,
       };
 
       // Generate AI review
@@ -249,11 +276,18 @@ export const reviewPullRequest = inngest.createFunction(
         );
 
         // Format inline comments with severity badges
-        const githubComments = inlineResult.comments.map((c) => ({
-          path: c.path,
-          line: c.line,
-          body: `${getSeverityEmoji(c.severity)} ${c.body}`,
-        }));
+        const githubComments = inlineResult.comments
+          .filter((c) =>
+            shouldPostSeverity(
+              c.severity,
+              reviewSettings?.minimumSeverityToPost ?? "warning"
+            )
+          )
+          .map((c) => ({
+            path: c.path,
+            line: c.line,
+            body: `${getSeverityEmoji(c.severity)} ${c.body}`,
+          }));
 
         try {
           const result = await createPullRequestReview(
