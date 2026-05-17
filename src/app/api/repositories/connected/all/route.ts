@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { disconnectAllRepositories } from "../../../../../../module/github/github";
 import { internalServerError } from "../../../../../../lib/api-response";
 import { isSameOriginRequest } from "../../../../../../lib/request-origin";
+import { checkRateLimit, rateLimitKey } from "../../../../../../lib/rate-limit";
 
 /**
  * DELETE /api/repositories/connected/all
@@ -24,6 +25,16 @@ export async function DELETE(request: NextRequest) {
         { error: "Unauthorized" },
         { status: 401 }
       );
+    }
+
+    const rateLimit = checkRateLimit({
+      key: rateLimitKey("repositories:disconnect_all", session.user.id),
+      limit: 3,
+      windowMs: 60_000,
+    });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
     const result = await disconnectAllRepositories(session.user.id);

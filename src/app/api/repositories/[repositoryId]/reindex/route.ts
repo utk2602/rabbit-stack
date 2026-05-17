@@ -6,6 +6,7 @@ import { inngest } from "../../../../../../inngest/client";
 import { safeRecordAuditEvent } from "@/lib/audit";
 import { internalServerError } from "@/lib/api-response";
 import { isSameOriginRequest } from "@/lib/request-origin";
+import { checkRateLimit, rateLimitKey } from "@/lib/rate-limit";
 
 interface RouteContext {
   params: Promise<{ repositoryId: string }>;
@@ -20,6 +21,16 @@ export async function POST(_request: NextRequest, context: RouteContext) {
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = checkRateLimit({
+    key: rateLimitKey("repositories:reindex", session.user.id),
+    limit: 10,
+    windowMs: 60_000,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   try {

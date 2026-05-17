@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { db } from "../../../../../lib/db";
 import { encryptSecret } from "../../../../../lib/secrets";
 import { safeRecordAuditEvent } from "../../../../../lib/audit";
+import { isSameOriginRequest } from "../../../../../lib/request-origin";
+import { checkRateLimit, rateLimitKey } from "../../../../../lib/rate-limit";
 
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -20,9 +22,23 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+  }
+
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = checkRateLimit({
+    key: rateLimitKey("settings:openai-key", session.user.id),
+    limit: 5,
+    windowMs: 60_000,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   const { apiKey } = await request.json();

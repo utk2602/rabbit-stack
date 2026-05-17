@@ -12,6 +12,7 @@ import { db } from "../../../../lib/db";
 import { safeRecordAuditEvent } from "../../../../lib/audit";
 import { internalServerError } from "../../../../lib/api-response";
 import { isSameOriginRequest } from "../../../../lib/request-origin";
+import { checkRateLimit, rateLimitKey } from "../../../../lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -51,6 +52,16 @@ export async function POST(request: NextRequest) {
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = checkRateLimit({
+    key: rateLimitKey("repositories:toggle", session.user.id),
+    limit: 20,
+    windowMs: 60_000,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   try {

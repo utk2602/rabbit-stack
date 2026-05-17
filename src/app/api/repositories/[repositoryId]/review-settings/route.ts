@@ -7,6 +7,7 @@ import {
 } from "@/lib/review-settings";
 import { safeRecordAuditEvent } from "@/lib/audit";
 import { isSameOriginRequest } from "@/lib/request-origin";
+import { checkRateLimit, rateLimitKey } from "@/lib/rate-limit";
 
 interface RouteContext {
   params: Promise<{ repositoryId: string }>;
@@ -17,6 +18,16 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = checkRateLimit({
+    key: rateLimitKey("review-settings:update", session.user.id),
+    limit: 30,
+    windowMs: 60_000,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   const { repositoryId } = await context.params;
