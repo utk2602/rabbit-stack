@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "../../../../../../lib/auth";
 import { headers } from "next/headers";
 import { disconnectAllRepositories } from "../../../../../../module/github/github";
+import { internalServerError } from "../../../../../../lib/api-response";
 
 /**
  * DELETE /api/repositories/connected/all
@@ -30,11 +31,6 @@ export async function DELETE() {
     });
   } catch (error) {
     console.error("[API] Error disconnecting all repositories:", error);
-    return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : "Failed to disconnect repositories" 
-      },
-      { status: 500 }
-    );
+    return internalServerError("Failed to disconnect repositories");
   }
 }

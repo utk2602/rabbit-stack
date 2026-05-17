@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "../../../../../lib/auth";
 import { headers } from "next/headers";
 import { db } from "../../../../../lib/db";
+import { internalServerError } from "../../../../../lib/api-response";
 
 export async function GET() {
   const session = await auth.api.getSession({
@@ -37,9 +38,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching connected repositories:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch connected repositories" },
-      { status: 500 }
-    );
+    return internalServerError("Failed to fetch connected repositories");
   }
 }

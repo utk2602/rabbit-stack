@@ -10,6 +10,7 @@ import {
 import { inngest } from "../../../../inngest/client";
 import { db } from "../../../../lib/db";
 import { safeRecordAuditEvent } from "../../../../lib/audit";
+import { internalServerError } from "../../../../lib/api-response";
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -34,10 +35,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching repositories:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch repositories" },
-      { status: 500 }
-    );
+    return internalServerError("Failed to fetch repositories");
   }
 }
 
@@ -148,9 +146,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error toggling repository connection:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to toggle connection" },
-      { status: 500 }
-    );
+    return internalServerError("Failed to toggle connection");
   }
 }
