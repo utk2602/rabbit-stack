@@ -243,14 +243,14 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Webhook] Received ${event} event (delivery: ${deliveryId})`);
 
-    const repository = await db.repository.findFirst({
+    const candidateRepositories = await db.repository.findMany({
       where: {
         githubId: payload.repository.id,
         isConnected: true,
       },
     });
 
-    if (!repository) {
+    if (candidateRepositories.length === 0) {
       console.log(
         `[Webhook] Repository ${payload.repository.full_name} not found or not connected`
       );
@@ -260,52 +260,60 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const webhookSecret = decryptOptionalSecret(repository.webhookSecret);
+    let repository = null;
+    let sawMissingSecret = false;
 
-    if (!webhookSecret) {
-      console.error("[Webhook] Connected repository has no webhook secret");
-      await updateWebhookHealth(repository.id, {
-        deliveryId,
-        event,
-        status: "invalid",
-        error: "Missing webhook secret",
-      });
-      await safeRecordAuditEvent({
-        event: "webhook.secret.missing",
-        userId: repository.userId,
-        repositoryId: repository.id,
-        severity: "error",
-        message: "Connected repository received a webhook without a stored secret",
-        metadata: { deliveryId, event },
-      });
-      return NextResponse.json(
-        { error: "Webhook signature verification is not configured" },
-        { status: 401 }
-      );
+    for (const candidate of candidateRepositories) {
+      const webhookSecret = decryptOptionalSecret(candidate.webhookSecret);
+
+      if (!webhookSecret) {
+        sawMissingSecret = true;
+        console.error("[Webhook] Connected repository has no webhook secret");
+        await updateWebhookHealth(candidate.id, {
+          deliveryId,
+          event,
+          status: "invalid",
+          error: "Missing webhook secret",
+        });
+        await safeRecordAuditEvent({
+          event: "webhook.secret.missing",
+          userId: candidate.userId,
+          repositoryId: candidate.id,
+          severity: "error",
+          message: "Connected repository received a webhook without a stored secret",
+          metadata: { deliveryId, event },
+        });
+        continue;
+      }
+
+      if (verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+        repository = candidate;
+        break;
+      }
     }
 
-    const isValid = verifyWebhookSignature(
-      rawBody,
-      signature,
-      webhookSecret
-    );
-
-    if (!isValid) {
+    if (!repository) {
       console.error("[Webhook] Invalid signature");
-      await updateWebhookHealth(repository.id, {
-        deliveryId,
-        event,
-        status: "invalid",
-        error: "Invalid webhook signature",
-      });
-      await safeRecordAuditEvent({
-        event: "webhook.signature.invalid",
-        userId: repository.userId,
-        repositoryId: repository.id,
-        severity: "error",
-        message: "GitHub webhook signature verification failed",
-        metadata: { deliveryId, event },
-      });
+      await Promise.all(
+        candidateRepositories.map(async (candidate) => {
+          await updateWebhookHealth(candidate.id, {
+            deliveryId,
+            event,
+            status: "invalid",
+            error: sawMissingSecret
+              ? "Missing or invalid webhook secret"
+              : "Invalid webhook signature",
+          });
+          await safeRecordAuditEvent({
+            event: "webhook.signature.invalid",
+            userId: candidate.userId,
+            repositoryId: candidate.id,
+            severity: "error",
+            message: "GitHub webhook signature verification failed",
+            metadata: { deliveryId, event },
+          });
+        })
+      );
       return NextResponse.json(
         { error: "Invalid webhook signature" },
         { status: 401 }
