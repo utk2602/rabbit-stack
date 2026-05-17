@@ -1,15 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../../../lib/auth";
 import { headers } from "next/headers";
 import { disconnectAllRepositories } from "../../../../../../module/github/github";
 import { internalServerError } from "../../../../../../lib/api-response";
+import { isSameOriginRequest } from "../../../../../../lib/request-origin";
 
 /**
  * DELETE /api/repositories/connected/all
  * Disconnects all connected repositories for the authenticated user
  */
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
+    if (!isSameOriginRequest(request)) {
+      return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+    }
+
     const session = await auth.api.getSession({
       headers: await headers(),
     });

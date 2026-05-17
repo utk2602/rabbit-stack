@@ -6,6 +6,7 @@ import {
   updateRepositoryReviewSettings,
 } from "@/lib/review-settings";
 import { safeRecordAuditEvent } from "@/lib/audit";
+import { isSameOriginRequest } from "@/lib/request-origin";
 
 interface RouteContext {
   params: Promise<{ repositoryId: string }>;
@@ -46,6 +47,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+  }
+
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session?.user?.id) {

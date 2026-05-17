@@ -11,6 +11,7 @@ import { inngest } from "../../../../inngest/client";
 import { db } from "../../../../lib/db";
 import { safeRecordAuditEvent } from "../../../../lib/audit";
 import { internalServerError } from "../../../../lib/api-response";
+import { isSameOriginRequest } from "../../../../lib/request-origin";
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -40,6 +41,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+  }
+
   const session = await auth.api.getSession({
     headers: await headers(),
   });
