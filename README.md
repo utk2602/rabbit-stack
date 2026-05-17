@@ -46,11 +46,12 @@ commit repository-local rules in one of these files:
 - `npm run dev` starts the Next.js app.
 - `npm run build` creates a production build.
 - `npm run security:env` validates required security environment variables.
+- `npm run security:check` runs release-oriented security and type checks.
 - `npm run backfill:secrets` encrypts legacy plaintext secrets.
 - `npm run audit:ingest` stores the latest npm audit result for the dashboard.
 - `npm run reviews:prune` deletes review records older than the configured retention window.
 
 ## Deployment
 
-Before deploying, run `npm run security:env`, `npx prisma migrate deploy`, and
+Before deploying, run `npm run security:check`, `npx prisma migrate deploy`, and
 `npm run build`.

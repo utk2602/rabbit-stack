@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "security:env": "tsx Scripts/check-security-env.ts",
+    "security:check": "tsx Scripts/security-checklist.ts",
     "backfill:secrets": "tsx Scripts/backfill-encrypted-secrets.ts",
     "reviews:prune": "tsx Scripts/prune-old-reviews.ts",
     "audit:ingest": "tsx Scripts/ingest-dependency-audit.ts"
