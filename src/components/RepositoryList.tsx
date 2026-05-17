@@ -21,7 +21,8 @@ import {
   Key,
   Settings2,
   ShieldCheck,
-  DatabaseZap
+  DatabaseZap,
+  RefreshCw
 } from "lucide-react";
 
 type FilterType = "all" | "connected" | "not-connected" | "public" | "private";
@@ -78,6 +79,7 @@ export function RepositoryList() {
   const [languageFilter, setLanguageFilter] = useState<LanguageFilter>(null);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [settingsRepo, setSettingsRepo] = useState<Repository | null>(null);
+  const [reindexingRepoId, setReindexingRepoId] = useState<string | null>(null);
   
   const {
     data,
@@ -87,6 +89,7 @@ export function RepositoryList() {
     isLoading,
     isError,
     error,
+    refetch,
   } = useRepositories();
 
   const toggleConnection = useToggleRepositoryConnection();
@@ -326,6 +329,38 @@ export function RepositoryList() {
     }
   };
 
+  const handleReindex = async (repo: Repository) => {
+    if (!repo.id) return;
+
+    setReindexingRepoId(repo.id);
+    toast.loading(`Queueing reindex for ${repo.fullName}...`, {
+      id: `reindex-${repo.id}`,
+    });
+
+    try {
+      const response = await fetch(`/api/repositories/${repo.id}/reindex`, {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to queue reindex");
+      }
+
+      toast.success(`Reindex queued for ${repo.fullName}`, {
+        id: `reindex-${repo.id}`,
+      });
+      await refetch();
+    } catch (error) {
+      toast.error("Failed to queue reindex", {
+        id: `reindex-${repo.id}`,
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setReindexingRepoId(null);
+    }
+  };
+
   const totalCount = data?.pages[0]?.totalCount ?? 0;
   const connectedCount = allRepos.filter((r) => r.isConnected).length;
 
@@ -461,7 +496,9 @@ export function RepositoryList() {
               repo={repo}
               onToggleConnection={() => handleToggleConnection(repo)}
               onSettingsClick={() => setSettingsRepo(repo)}
+              onReindexClick={() => handleReindex(repo)}
               isToggling={toggleConnection.isPending}
+              isReindexing={reindexingRepoId === repo.id}
             />
           ))}
         </div>
@@ -543,10 +580,19 @@ interface RepositoryCardProps {
   repo: Repository;
   onToggleConnection: () => void;
   onSettingsClick: () => void;
+  onReindexClick: () => void;
   isToggling: boolean;
+  isReindexing: boolean;
 }
 
-function RepositoryCard({ repo, onToggleConnection, onSettingsClick, isToggling }: RepositoryCardProps) {
+function RepositoryCard({
+  repo,
+  onToggleConnection,
+  onSettingsClick,
+  onReindexClick,
+  isToggling,
+  isReindexing,
+}: RepositoryCardProps) {
   const languageColor = repo.language ? LANGUAGE_COLORS[repo.language] || "bg-zinc-500" : null;
   const canEditSettings = repo.isConnected && Boolean(repo.id);
   const indexingLabel = getIndexingLabel(repo);
@@ -612,14 +658,25 @@ function RepositoryCard({ repo, onToggleConnection, onSettingsClick, isToggling 
         {/* Connect Button */}
         <div className="flex shrink-0 items-center gap-2">
           {canEditSettings && (
-            <button
-              onClick={onSettingsClick}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-accent hover:bg-accent hover:text-foreground"
-              title="Review settings"
-              aria-label={`Review settings for ${repo.fullName}`}
-            >
-              <Settings2 className="h-4 w-4" />
-            </button>
+            <>
+              <button
+                onClick={onReindexClick}
+                disabled={isReindexing}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-accent hover:bg-accent hover:text-foreground disabled:opacity-60"
+                title="Reindex repository"
+                aria-label={`Reindex ${repo.fullName}`}
+              >
+                <RefreshCw className={`h-4 w-4 ${isReindexing ? "animate-spin" : ""}`} />
+              </button>
+              <button
+                onClick={onSettingsClick}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-accent hover:bg-accent hover:text-foreground"
+                title="Review settings"
+                aria-label={`Review settings for ${repo.fullName}`}
+              >
+                <Settings2 className="h-4 w-4" />
+              </button>
+            </>
           )}
           <button
             onClick={onToggleConnection}
