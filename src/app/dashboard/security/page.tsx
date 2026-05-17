@@ -396,6 +396,16 @@ export default async function SecurityPage() {
                   Connect a repository to enable webhook health tracking.
                 </div>
               )}
+              {summary.indexing.failed > 0 && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+                  Retry failed repository indexes from the repository cards.
+                </div>
+              )}
+              {!summary.dependencies.latest && (
+                <div className="rounded-lg border border-border bg-secondary p-4 text-sm text-muted-foreground">
+                  Run `npm run audit:ingest` to populate dependency risk.
+                </div>
+              )}
               {!summary.secrets.missingEncryptionKey &&
                 summary.secrets.plaintext === 0 &&
                 summary.webhooks.missingSecret === 0 && (
