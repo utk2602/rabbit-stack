@@ -9,7 +9,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   LogOut,
-  GitPullRequestDraft
+  GitPullRequestDraft,
+  ShieldCheck,
 } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ export function Sidebar({ profile }: SidebarProps) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/repositories", label: "Repositories", icon: FolderGit2 },
     { href: "/dashboard/reviews", label: "Reviews", icon: GitPullRequestDraft },
+    { href: "/dashboard/security", label: "Security", icon: ShieldCheck },
   ];
 
   return (
