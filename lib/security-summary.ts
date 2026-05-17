@@ -27,6 +27,20 @@ export interface SecuritySummary {
     failed: number;
     inProgress: number;
   };
+  indexing: {
+    indexing: number;
+    failed: number;
+    completed: number;
+    repositories: Array<{
+      id: string;
+      fullName: string;
+      status: string;
+      fileCount: number;
+      chunkCount: number;
+      lastIndexedAt: string | null;
+      lastError: string | null;
+    }>;
+  };
   audit: {
     recentFailures: number;
     recentEvents: Array<{
@@ -89,6 +103,11 @@ export async function getSecuritySummary(userId: string): Promise<SecuritySummar
           lastWebhookEvent: true,
           lastWebhookError: true,
           lastWebhookAt: true,
+          indexingStatus: true,
+          lastIndexedAt: true,
+          lastIndexError: true,
+          indexedFileCount: true,
+          indexedChunkCount: true,
         },
         orderBy: { updatedAt: "desc" },
         take: 12,
@@ -162,6 +181,24 @@ export async function getSecuritySummary(userId: string): Promise<SecuritySummar
     reviews: {
       failed: failedReviews,
       inProgress: inProgressReviews,
+    },
+    indexing: {
+      indexing: connectedRepos.filter((repo) => repo.indexingStatus === "indexing")
+        .length,
+      failed: connectedRepos.filter((repo) => repo.indexingStatus === "failed")
+        .length,
+      completed: connectedRepos.filter(
+        (repo) => repo.indexingStatus === "completed"
+      ).length,
+      repositories: connectedRepos.map((repo) => ({
+        id: repo.id,
+        fullName: repo.fullName,
+        status: repo.indexingStatus,
+        fileCount: repo.indexedFileCount,
+        chunkCount: repo.indexedChunkCount,
+        lastIndexedAt: repo.lastIndexedAt?.toISOString() ?? null,
+        lastError: repo.lastIndexError,
+      })),
     },
     audit: {
       recentFailures: recentEvents.filter((event) => event.severity === "error")

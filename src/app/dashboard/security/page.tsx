@@ -64,6 +64,12 @@ export default async function SecurityPage() {
         ? "warn"
         : "good";
   const reviewStatus = summary.reviews.failed > 0 ? "warn" : "good";
+  const indexingStatus =
+    summary.indexing.failed > 0
+      ? "warn"
+      : summary.indexing.indexing > 0
+        ? "warn"
+        : "good";
   const auditStatus = summary.audit.recentFailures > 0 ? "warn" : "good";
   const dependencyStatus =
     !summary.dependencies.latest || summary.dependencies.latest.critical > 0
@@ -103,7 +109,7 @@ export default async function SecurityPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
           <StatCard
             title="Encrypted Secrets"
             value={`${summary.secrets.encrypted}`}
@@ -122,8 +128,15 @@ export default async function SecurityPage() {
             title="Review Jobs"
             value={`${summary.reviews.inProgress}`}
             detail={`${summary.reviews.failed} failed jobs need attention.`}
-            icon={DatabaseZap}
+            icon={Activity}
             status={reviewStatus}
+          />
+          <StatCard
+            title="Code Indexing"
+            value={`${summary.indexing.completed}`}
+            detail={`${summary.indexing.indexing} running, ${summary.indexing.failed} failed indexes.`}
+            icon={DatabaseZap}
+            status={indexingStatus}
           />
           <StatCard
             title="Recent Audit Risk"
@@ -248,6 +261,62 @@ export default async function SecurityPage() {
                                   : "unknown time"
                               }`
                             : "No webhook delivery recorded yet."}
+                        </p>
+                        {repo.lastError && (
+                          <p className="mt-2 text-xs text-red-300">
+                            {repo.lastError}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-5">
+              <h2 className="text-lg font-semibold tracking-normal">
+                Indexing Health
+              </h2>
+              <div className="mt-5 space-y-3">
+                {summary.indexing.repositories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No connected repositories are queued for indexing.
+                  </p>
+                ) : (
+                  summary.indexing.repositories.map((repo) => {
+                    const tone =
+                      repo.status === "completed"
+                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-100"
+                        : repo.status === "failed"
+                          ? "border-red-500/20 bg-red-500/10 text-red-100"
+                          : repo.status === "indexing"
+                            ? "border-primary/20 bg-primary/10 text-primary"
+                            : "border-border bg-secondary text-muted-foreground";
+
+                    return (
+                      <div
+                        key={repo.id}
+                        className="rounded-lg border border-border p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="truncate text-sm font-medium">
+                            {repo.fullName}
+                          </p>
+                          <span
+                            className={`shrink-0 rounded-md border px-2 py-1 text-xs ${tone}`}
+                          >
+                            {repo.status}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {repo.status === "completed"
+                            ? `${repo.fileCount} files and ${repo.chunkCount} chunks indexed${
+                                repo.lastIndexedAt
+                                  ? ` at ${new Date(repo.lastIndexedAt).toLocaleString()}`
+                                  : ""
+                              }.`
+                            : "Awaiting a completed index run."}
                         </p>
                         {repo.lastError && (
                           <p className="mt-2 text-xs text-red-300">
