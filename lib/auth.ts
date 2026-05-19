@@ -2,20 +2,9 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { jwt } from "better-auth/plugins";
 import prisma from "./db";
+import { getAuthBaseURLConfig, getAuthIssuerOrigin } from "./auth-url";
 
-function getAuthBaseUrl() {
-  if (process.env.BETTER_AUTH_URL) {
-    return process.env.BETTER_AUTH_URL;
-  }
-
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-
-  return "http://localhost:3000";
-}
-
-const authBaseUrl = getAuthBaseUrl();
+const authIssuerOrigin = getAuthIssuerOrigin();
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -31,7 +20,7 @@ export const auth = betterAuth({
   plugins: [
     jwt({
       jwt: {
-        issuer: authBaseUrl,
+        issuer: authIssuerOrigin,
         audience: "rabbit-stack",
         expirationTime: "15 minutes",
         definePayload: ({ user, session }) => ({
@@ -48,5 +37,5 @@ export const auth = betterAuth({
     }),
   ],
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: authBaseUrl,
+  baseURL: getAuthBaseURLConfig(),
 });
