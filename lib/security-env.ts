@@ -1,5 +1,6 @@
+import crypto from "crypto";
+
 export const REQUIRED_SECURITY_VARIABLES = [
-  "DATA_ENCRYPTION_KEY",
   "BETTER_AUTH_SECRET",
   "BETTER_AUTH_URL",
   "GITHUB_CLIENT_ID",
@@ -39,21 +40,56 @@ export function parseSecretEncryptionKey(
 }
 
 export function getSecretEncryptionKey() {
-  const key = parseSecretEncryptionKey();
+  const key = getSecretEncryptionKeys()[0];
 
   if (!key) {
     throw new Error(
-      "DATA_ENCRYPTION_KEY must be 32 bytes as base64, hex, or UTF-8 text"
+      "DATA_ENCRYPTION_KEY must be 32 bytes as base64, hex, or UTF-8 text, or BETTER_AUTH_SECRET must be at least 32 characters"
     );
   }
 
   return key;
 }
 
+function deriveFallbackEncryptionKey(env: SecurityEnv = process.env) {
+  const secret = readEnvValue(env, "BETTER_AUTH_SECRET");
+
+  if (!secret || secret.length < 32) {
+    return null;
+  }
+
+  return crypto
+    .createHash("sha256")
+    .update(`rabbit-stack:data-encryption:v1:${secret}`)
+    .digest();
+}
+
+export function getSecretEncryptionKeys(env: SecurityEnv = process.env) {
+  const keys: Buffer[] = [];
+  const configuredKey = parseSecretEncryptionKey(
+    readEnvValue(env, "DATA_ENCRYPTION_KEY")
+  );
+  const fallbackKey = deriveFallbackEncryptionKey(env);
+
+  if (configuredKey) {
+    keys.push(configuredKey);
+  }
+
+  if (fallbackKey && !keys.some((key) => key.equals(fallbackKey))) {
+    keys.push(fallbackKey);
+  }
+
+  return keys;
+}
+
 export function hasValidSecretEncryptionKey(
-  value = process.env.DATA_ENCRYPTION_KEY
+  value = process.env.DATA_ENCRYPTION_KEY,
+  env: SecurityEnv = process.env
 ) {
-  return parseSecretEncryptionKey(value) !== null;
+  return (
+    parseSecretEncryptionKey(value) !== null ||
+    deriveFallbackEncryptionKey(env) !== null
+  );
 }
 
 function hasValidUrl(value: string | undefined) {
@@ -79,9 +115,14 @@ export function validateSecurityEnv(env: SecurityEnv = process.env) {
     errors.push(`Missing required variables: ${missing.join(", ")}`);
   }
 
-  if (!hasValidSecretEncryptionKey(readEnvValue(env, "DATA_ENCRYPTION_KEY"))) {
+  const hasTokenEncryptionKey = hasValidSecretEncryptionKey(
+    readEnvValue(env, "DATA_ENCRYPTION_KEY"),
+    env
+  );
+
+  if (!hasTokenEncryptionKey) {
     errors.push(
-      "DATA_ENCRYPTION_KEY must be 32 bytes as base64, hex, or UTF-8 text."
+      "DATA_ENCRYPTION_KEY must be 32 bytes as base64, hex, or UTF-8 text, or BETTER_AUTH_SECRET must be at least 32 characters."
     );
   }
 

@@ -82,7 +82,7 @@ Important variables:
 - `NEXT_PUBLIC_BETTER_AUTH_URL`: public auth base URL for the client. Use the same HTTPS origin in production.
 - `GITHUB_CLIENT_ID`: GitHub OAuth app client id.
 - `GITHUB_CLIENT_SECRET`: GitHub OAuth app client secret.
-- `DATA_ENCRYPTION_KEY`: base64-encoded 32-byte key for secret encryption.
+- `DATA_ENCRYPTION_KEY`: recommended base64-encoded 32-byte key for secret encryption. If omitted, Rabbit Stack derives a stable fallback key from `BETTER_AUTH_SECRET`.
 - `WEBHOOK_URL`: public HTTPS URL GitHub can call.
 - `GOOGLE_GENERATIVE_AI_API_KEY`: Gemini API key for reviews.
 - `PINECONE_API_KEY`: Pinecone API key.
@@ -196,7 +196,7 @@ Production checklist:
 - Configure a GitHub OAuth app callback for `${BETTER_AUTH_URL}/api/auth/callback/github`.
   For Vercel this should look like `https://rabbit-stack.vercel.app/api/auth/callback/github`, not `http://...`.
 - Set `WEBHOOK_URL` to the public HTTPS app URL.
-- Set `DATA_ENCRYPTION_KEY` and keep it stable across deployments.
+- Set `DATA_ENCRYPTION_KEY` and keep it stable across deployments, or keep `BETTER_AUTH_SECRET` stable if you rely on the fallback key.
 - Run `npm run backfill:secrets` if migrating existing plaintext data.
 - Run `npm run audit:ingest` after dependency audits.
 - Schedule `npm run reviews:prune` if you want bounded review retention.

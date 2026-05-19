@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { getSecretEncryptionKey } from "./security-env";
+import { getSecretEncryptionKey, getSecretEncryptionKeys } from "./security-env";
 
 const ENCRYPTED_PREFIX = "enc:v1:";
 const ALGORITHM = "aes-256-gcm";
@@ -47,19 +47,29 @@ export function decryptSecret(value: string): string {
     throw new Error("Invalid encrypted secret format");
   }
 
-  const key = getSecretEncryptionKey();
-  const decipher = crypto.createDecipheriv(
-    ALGORITHM,
-    key,
-    Buffer.from(ivValue, "base64url")
-  );
+  const keys = getSecretEncryptionKeys();
+  let lastError: unknown;
 
-  decipher.setAuthTag(Buffer.from(authTagValue, "base64url"));
+  for (const key of keys) {
+    try {
+      const decipher = crypto.createDecipheriv(
+        ALGORITHM,
+        key,
+        Buffer.from(ivValue, "base64url")
+      );
 
-  return Buffer.concat([
-    decipher.update(Buffer.from(ciphertextValue, "base64url")),
-    decipher.final(),
-  ]).toString("utf8");
+      decipher.setAuthTag(Buffer.from(authTagValue, "base64url"));
+
+      return Buffer.concat([
+        decipher.update(Buffer.from(ciphertextValue, "base64url")),
+        decipher.final(),
+      ]).toString("utf8");
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError ?? new Error("No encryption keys are configured");
 }
 
 export function decryptOptionalSecret(
