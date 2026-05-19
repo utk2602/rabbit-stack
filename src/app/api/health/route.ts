@@ -1,22 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-
-function hasValidEncryptionKey() {
-  const key = process.env.DATA_ENCRYPTION_KEY;
-  if (!key) return false;
-
-  try {
-    return Buffer.from(key, "base64").length === 32;
-  } catch {
-    return false;
-  }
-}
+import { hasValidSecretEncryptionKey } from "@/lib/security-env";
 
 export async function GET() {
   const checks = {
     app: true,
     database: false,
-    encryptionKey: hasValidEncryptionKey(),
+    encryptionKey: hasValidSecretEncryptionKey(),
   };
 
   try {

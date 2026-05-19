@@ -1,35 +1,8 @@
 import crypto from "crypto";
+import { getSecretEncryptionKey } from "./security-env";
 
 const ENCRYPTED_PREFIX = "enc:v1:";
 const ALGORITHM = "aes-256-gcm";
-
-function getEncryptionKey(): Buffer {
-  const rawKey = process.env.DATA_ENCRYPTION_KEY;
-
-  if (!rawKey) {
-    throw new Error("DATA_ENCRYPTION_KEY is required for secret encryption");
-  }
-
-  const trimmedKey = rawKey.trim();
-
-  if (/^[a-f0-9]{64}$/i.test(trimmedKey)) {
-    return Buffer.from(trimmedKey, "hex");
-  }
-
-  const base64Key = Buffer.from(trimmedKey, "base64");
-  if (base64Key.length === 32) {
-    return base64Key;
-  }
-
-  const utf8Key = Buffer.from(trimmedKey, "utf8");
-  if (utf8Key.length === 32) {
-    return utf8Key;
-  }
-
-  throw new Error(
-    "DATA_ENCRYPTION_KEY must be 32 bytes as base64, hex, or UTF-8 text"
-  );
-}
 
 export function isEncryptedSecret(value: string | null | undefined): boolean {
   return typeof value === "string" && value.startsWith(ENCRYPTED_PREFIX);
@@ -40,7 +13,7 @@ export function encryptSecret(value: string): string {
     return value;
   }
 
-  const key = getEncryptionKey();
+  const key = getSecretEncryptionKey();
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   const ciphertext = Buffer.concat([
@@ -74,7 +47,7 @@ export function decryptSecret(value: string): string {
     throw new Error("Invalid encrypted secret format");
   }
 
-  const key = getEncryptionKey();
+  const key = getSecretEncryptionKey();
   const decipher = crypto.createDecipheriv(
     ALGORITHM,
     key,
