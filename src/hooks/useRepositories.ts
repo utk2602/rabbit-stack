@@ -1,6 +1,12 @@
 "use client";
 
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 
 export interface Repository {
   id: string | null;
@@ -126,8 +132,9 @@ export function useToggleRepositoryConnection() {
     }) => toggleConnection(githubId, repoData),
     onMutate: async ({ githubId }) => {
       await queryClient.cancelQueries({ queryKey: ["repositories"] });
-      const previousData = queryClient.getQueryData(["repositories"]);
-      queryClient.setQueryData(["repositories"], (old: any) => {
+      const previousData =
+        queryClient.getQueryData<InfiniteData<RepositoriesPage>>(["repositories"]);
+      queryClient.setQueryData<InfiniteData<RepositoriesPage>>(["repositories"], (old) => {
         if (!old) return old;
         return {
           ...old,

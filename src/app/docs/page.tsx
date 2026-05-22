@@ -176,7 +176,7 @@ export default function DocsPage() {
                 No passwords are stored by Rabbit Stack.
               </DocCard>
               <DocCard icon={KeyRound} title="Encrypted secrets">
-                API keys are stored through the app's encrypted secret flow.
+                API keys are stored through the app&apos;s encrypted secret flow.
               </DocCard>
               <DocCard icon={Webhook} title="Webhook trust">
                 Delivery signatures are verified before jobs are queued.

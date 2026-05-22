@@ -11,7 +11,7 @@ export class SettingsValidationError extends Error {
 }
 
 export function validateSettingsUpdate(data: SettingsUpdate): boolean {
-  if (data.theme !== undefined && !THEMES.includes(data.theme as any)) {
+  if (data.theme !== undefined && !THEMES.some((theme) => theme === data.theme)) {
     throw new SettingsValidationError(
       `Invalid theme. Must be one of: ${THEMES.join(", ")}`
     );
@@ -19,14 +19,17 @@ export function validateSettingsUpdate(data: SettingsUpdate): boolean {
 
   if (data.language !== undefined) {
     const validLanguages = LANGUAGES.map((lang) => lang.code);
-    if (!validLanguages.includes(data.language as any)) {
+    if (!validLanguages.some((language) => language === data.language)) {
       throw new SettingsValidationError(
         `Invalid language. Must be one of: ${validLanguages.join(", ")}`
       );
     }
   }
 
-  if (data.timezone !== undefined && !TIMEZONES.includes(data.timezone as any)) {
+  if (
+    data.timezone !== undefined &&
+    !TIMEZONES.some((timezone) => timezone === data.timezone)
+  ) {
     throw new SettingsValidationError(
       `Invalid timezone. Must be one of: ${TIMEZONES.join(", ")}`
     );
@@ -66,7 +69,7 @@ export function sanitizeSettingsUpdate(data: SettingsUpdate): SettingsUpdate {
 
   for (const field of allowedFields) {
     if (data[field] !== undefined) {
-      sanitized[field] = data[field] as any;
+      Object.assign(sanitized, { [field]: data[field] });
     }
   }
 

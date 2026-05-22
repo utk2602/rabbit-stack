@@ -12,6 +12,15 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "src/generated/**",
+    "src/prisma/**",
+    "components/**",
+    "src/components/AuthButton.tsx",
+    "src/components/SettingsForm.tsx",
+    "src/components/floating-paths.tsx",
+    "src/components/login-ui.tsx",
+    "src/components/radio.tsx",
+    "src/components/sections/footer/**",
   ]),
 ]);
 

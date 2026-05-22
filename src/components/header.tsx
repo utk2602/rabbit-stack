@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/mobile-nav";
 import { AnimatedWordmark } from "@/components/brand/animated-wordmark";
@@ -37,9 +39,9 @@ export function Header({ onAuthClick }: HeaderProps) {
       )}
     >
       <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <a href="/" className="rounded-lg p-1 transition-colors hover:bg-accent/60">
+        <Link href="/" className="rounded-lg p-1 transition-colors hover:bg-accent/60">
           <AnimatedWordmark compact />
-        </a>
+        </Link>
 
         <div className="hidden items-center gap-2 md:flex">
           {navLinks.map((link) => (

@@ -564,7 +564,6 @@ function RepositoryCard({
   const languageColor = repo.language ? LANGUAGE_COLORS[repo.language] || "bg-zinc-400" : null;
   const canEditSettings = repo.isConnected && Boolean(repo.id);
   const indexingLabel = getIndexingLabel(repo);
-  const IndexingIcon = getIndexingIcon(repo.indexingStatus);
 
   return (
     <GlowPanel interactive className="p-5" accent={repo.isConnected ? "primary" : "cyan"}>
@@ -621,12 +620,7 @@ function RepositoryCard({
               )}
               title={repo.lastIndexError ?? indexingLabel}
             >
-              <IndexingIcon
-                className={cn(
-                  "h-3.5 w-3.5 shrink-0",
-                  repo.indexingStatus === "indexing" && "animate-spin"
-                )}
-              />
+              <IndexingStatusIcon status={repo.indexingStatus} />
               <span className="truncate">{indexingLabel}</span>
             </span>
           )}
@@ -706,11 +700,11 @@ function getIndexingLabel(repo: Repository) {
   }
 }
 
-function getIndexingIcon(status: Repository["indexingStatus"]) {
-  if (status === "completed") return DatabaseZap;
-  if (status === "failed") return AlertCircle;
-  if (status === "indexing") return Loader2;
-  return Clock3;
+function IndexingStatusIcon({ status }: { status: Repository["indexingStatus"] }) {
+  if (status === "completed") return <DatabaseZap className="h-3.5 w-3.5 shrink-0" />;
+  if (status === "failed") return <AlertCircle className="h-3.5 w-3.5 shrink-0" />;
+  if (status === "indexing") return <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />;
+  return <Clock3 className="h-3.5 w-3.5 shrink-0" />;
 }
 
 function getIndexingTone(status: Repository["indexingStatus"]) {

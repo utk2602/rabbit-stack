@@ -52,9 +52,9 @@ provider: "github",
 callbackURL: "/dashboard",
 });
 toast.success("Redirecting to GitHub...");
-} catch (err: any) {
+} catch (err: unknown) {
 console.error("GitHub sign-in error:", err);
-const msg = err.message || "Failed to sign in with GitHub";
+const msg = err instanceof Error ? err.message : "Failed to sign in with GitHub";
 setError(msg);
 toast.error(msg);
 setIsLoading(false);

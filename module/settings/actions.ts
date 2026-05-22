@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { validateSettingsUpdate, sanitizeSettingsUpdate } from "./validators";
 import { DEFAULT_SETTINGS } from "./constants";
 import { encryptSecret } from "../../lib/secrets";
+import type { SettingsUpdate } from "./types";
 
 export async function getUserSettings() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -52,7 +53,7 @@ export async function initializeUserSettings(userId: string) {
   }
 }
 
-export async function updateUserSettings(data: any) {
+export async function updateUserSettings(data: SettingsUpdate) {
   const session = await auth.api.getSession({ headers: await headers() });
   
   if (!session) {
@@ -142,7 +143,10 @@ export async function deleteUserSettings() {
   }
 }
 
-export async function updateSettingField(field: string, value: any) {
+export async function updateSettingField(
+  field: keyof SettingsUpdate,
+  value: SettingsUpdate[keyof SettingsUpdate]
+) {
   const session = await auth.api.getSession({ headers: await headers() });
   
   if (!session) {
@@ -150,7 +154,7 @@ export async function updateSettingField(field: string, value: any) {
   }
 
   try {
-    const updateData = { [field]: value };
+    const updateData: SettingsUpdate = { [field]: value };
     const sanitizedData = sanitizeSettingsUpdate(updateData);
     validateSettingsUpdate(sanitizedData);
 

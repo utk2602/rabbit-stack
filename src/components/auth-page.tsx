@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,9 +39,9 @@ export function AuthPage() {
     <ReactBitsStage className="min-h-screen" intensity="panel">
       <main className="grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
         <section className="hidden border-r border-border px-10 py-8 lg:flex lg:flex-col">
-          <a href="/" className="w-fit">
+          <Link href="/" className="w-fit">
             <AnimatedWordmark />
-          </a>
+          </Link>
 
           <div className="flex flex-1 items-center">
             <SpotlightSurface className="w-full p-6" spotlightColor="rgba(124, 247, 200, 0.18)">
@@ -68,10 +69,10 @@ export function AuthPage() {
 
         <section className="flex min-h-screen flex-col justify-center px-6 py-8">
           <Button asChild className="absolute left-5 top-5" variant="ghost">
-            <a href="/">
+            <Link href="/">
               <ArrowLeft className="mr-1 h-4 w-4" />
               Home
-            </a>
+            </Link>
           </Button>
 
           <div className="mx-auto w-full max-w-sm">
