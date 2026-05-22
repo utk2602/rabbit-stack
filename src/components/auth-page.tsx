@@ -21,9 +21,9 @@ export function AuthPage() {
 				provider: "github",
 				callbackURL: "/dashboard",
 			});
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error("GitHub sign-in error:", err);
-			const msg = err.message || "Failed to sign in with GitHub";
+			const msg = err instanceof Error ? err.message : "Failed to sign in with GitHub";
 			setError(msg);
 			toast.error(msg);
 			setIsLoading(false);
@@ -39,11 +39,12 @@ export function AuthPage() {
 				<div className="z-10 mt-auto">
 					<blockquote className="space-y-2">
 						<p className="text-xl">
-							&ldquo;Rabbit Stack catches edge cases my team misses. It&apos;s
-							like having a senior engineer on standby 24/7.&rdquo;
+							&ldquo;Rabbit Stack turns pull requests into focused review queues.
+							It flags the risky parts first, so my team reviews with context
+							instead of guesswork.&rdquo;
 						</p>
 						<footer className="font-mono font-semibold text-sm">
-							~ Riya Sharma, Senior Full-Stack Engineer
+							~ Riya Sharma, Staff Full-Stack Engineer
 						</footer>
 					</blockquote>
 				</div>
@@ -72,10 +73,11 @@ export function AuthPage() {
 					<Logo className="h-5 lg:hidden" />
 					<div className="flex flex-col space-y-1">
 						<h1 className="font-bold text-2xl tracking-wide">
-							Sign in with GitHub
+							Connect GitHub to start reviewing
 						</h1>
 						<p className="text-base text-muted-foreground">
-							Rabbit Stack uses GitHub OAuth and short-lived JWT access tokens.
+							Use GitHub OAuth to connect repositories, install webhooks, and
+							review pull requests without creating another password.
 						</p>
 					</div>
 
@@ -96,17 +98,19 @@ export function AuthPage() {
 							) : (
 								<GithubIcon className="w-4 h-4 mr-2" />
 							)}
-							Continue with GitHub
+							Continue securely with GitHub
 						</Button>
 					</div>
 
 					<div className="rounded-lg border border-border bg-secondary/60 p-4 text-sm text-muted-foreground">
-						No passwords are stored by Rabbit Stack. GitHub is the only sign-in
-						provider, and API access can use JWTs from <code>/api/auth/token</code>.
+						Rabbit Stack only asks for the GitHub access it needs to sync
+						repositories, create webhooks, and post review feedback. API access
+						can use short-lived JWTs from <code>/api/auth/token</code>.
 					</div>
 
 					<p className="mt-8 text-muted-foreground text-sm">
-						By clicking continue, you agree to our{" "}
+						By continuing, you confirm that you&apos;re connecting repositories
+						you&apos;re authorized to manage and agree to our{" "}
 						<a
 							className="underline underline-offset-4 hover:text-primary"
 							href="#"
