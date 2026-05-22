@@ -51,7 +51,7 @@ const MenuOverlay = ({ isOpen, closeMenu }: MenuOverlayProps) => {
     { label: "Dashboard", href: "/dashboard" },
     { label: "Repositories", href: "/repositories" },
     { label: "Reviews", href: "/dashboard/reviews" },
-    { label: "Documentation", href: "/docs" },
+    { label: "Documentation", href: "/#docs" },
   ]
 
   return (

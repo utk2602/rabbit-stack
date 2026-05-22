@@ -10,9 +10,9 @@ export function Footer() {
 						<SocialCard className="border-t-0" href="https://github.com" title="GitHub" />
 						<LinksGroup
 							links={[
-								{ title: "Pull Request Reviews", href: "/docs" },
-								{ title: "IDE Reviews", href: "/docs" },
-								{ title: "CLI Reviews", href: "/docs" },
+								{ title: "Pull Request Reviews", href: "/#docs" },
+								{ title: "Setup Guide", href: "/#docs" },
+								{ title: "Environment Checklist", href: "/#docs" },
 								{ title: "Pricing", href: "#" },
 								{ title: "Blog", href: "#" },
 							]}
@@ -26,7 +26,7 @@ export function Footer() {
 								{ title: "Dashboard", href: "/dashboard" },
 								{ title: "Repositories", href: "/repositories" },
 								{ title: "Reviews", href: "/dashboard/reviews" },
-								{ title: "Documentation", href: "/docs" },
+								{ title: "Documentation", href: "/#docs" },
 								{ title: "FAQ", href: "#" },
 							]}
 							title="Navigation"

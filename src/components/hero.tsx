@@ -36,7 +36,7 @@ export function HeroSection({ onAuthClick }: HeroSectionProps) {
 						"group mx-auto flex w-fit items-center gap-3 rounded-sm border bg-card p-1 shadow",
 						"fade-in slide-in-from-bottom-10 animate-in fill-mode-backwards transition-all delay-500 duration-500 ease-out"
 					)}
-					href="/docs"
+					href="#docs"
 				>
 					<div className="rounded-xs border bg-primary/10 text-primary px-1.5 py-0.5 shadow-sm">
 						<p className="font-mono text-xs">AI</p>
@@ -70,7 +70,7 @@ export function HeroSection({ onAuthClick }: HeroSectionProps) {
 
 				<div className="fade-in slide-in-from-bottom-10 flex w-fit animate-in items-center justify-center gap-3 fill-mode-backwards pt-2 delay-300 duration-500 ease-out">
 					<Button asChild variant="outline">
-						<a href="/docs">
+						<a href="#docs">
 							<BookOpenIcon data-icon="inline-start" />{" "}
 							Documentation
 						</a>

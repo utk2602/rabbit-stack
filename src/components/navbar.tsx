@@ -47,7 +47,7 @@ const Navbar = ({ onAuthClick }: NavbarProps) => {
         <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <a href="#hero" className="hover:text-primary transition-colors">Home</a>
           <a href="/dashboard" className="hover:text-primary transition-colors">Dashboard</a>
-          <a href="/docs" className="hover:text-primary transition-colors">Docs</a>
+          <a href="/#docs" className="hover:text-primary transition-colors">Docs</a>
           {onAuthClick && (
             <button
               onClick={onAuthClick}

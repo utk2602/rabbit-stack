@@ -8,7 +8,7 @@ export const navLinks = [
 		
 	{
 		label: "Docs",
-		href: "/docs",
+		href: "/#docs",
 	},
 ];
 
