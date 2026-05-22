@@ -1,29 +1,48 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { useRepositories, useToggleRepositoryConnection, Repository, RepositoriesPage } from "@/hooks/useRepositories";
-import { toast } from "sonner";
-import { 
-  Search, 
-  Filter, 
-  Star, 
-  GitFork, 
-  Lock, 
-  Globe, 
-  Loader2, 
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
   AlertCircle,
   Check,
   Clock3,
-  Plus,
-  X,
-  ChevronDown,
-  Trash2,
+  DatabaseZap,
+  FolderGit2,
+  GitFork,
+  Globe,
   Key,
+  Loader2,
+  Lock,
+  Plus,
+  RefreshCw,
+  Search,
   Settings2,
   ShieldCheck,
-  DatabaseZap,
-  RefreshCw
+  SlidersHorizontal,
+  Star,
+  Trash2,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
+
+import {
+  Repository,
+  RepositoriesPage,
+  useRepositories,
+  useToggleRepositoryConnection,
+} from "@/hooks/useRepositories";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
+import { GlowPanel } from "@/components/ui/glow-panel";
+import { PageHeader } from "@/components/ui/page-header";
+import { SearchInput } from "@/components/ui/search-input";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { cn } from "@/lib/utils";
 
 type FilterType = "all" | "connected" | "not-connected" | "public" | "private";
 type LanguageFilter = string | null;
@@ -52,35 +71,34 @@ const SEVERITY_OPTIONS: Array<{ value: ReviewSeverity; label: string }> = [
 ];
 
 const LANGUAGE_COLORS: Record<string, string> = {
-  TypeScript: "bg-blue-500",
-  JavaScript: "bg-yellow-400",
-  Python: "bg-green-500",
-  Java: "bg-primary",
-  Go: "bg-cyan-500",
-  Rust: "bg-primary/80",
-  Ruby: "bg-red-500",
-  PHP: "bg-indigo-500",
-  "C#": "bg-purple-500",
-  "C++": "bg-pink-500",
-  C: "bg-gray-500",
-  Swift: "bg-primary/60",
+  TypeScript: "bg-blue-400",
+  JavaScript: "bg-yellow-300",
+  Python: "bg-emerald-400",
+  Java: "bg-orange-300",
+  Go: "bg-cyan-300",
+  Rust: "bg-orange-500",
+  Ruby: "bg-rose-400",
+  PHP: "bg-indigo-400",
+  "C#": "bg-violet-400",
+  "C++": "bg-pink-400",
+  C: "bg-slate-400",
+  Swift: "bg-orange-400",
   Kotlin: "bg-purple-400",
-  Dart: "bg-blue-400",
+  Dart: "bg-sky-400",
   HTML: "bg-red-400",
   CSS: "bg-blue-300",
   Shell: "bg-green-400",
   Vue: "bg-emerald-500",
-  Svelte: "bg-primary",
+  Svelte: "bg-orange-500",
 };
 
 export function RepositoryList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
   const [languageFilter, setLanguageFilter] = useState<LanguageFilter>(null);
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [settingsRepo, setSettingsRepo] = useState<Repository | null>(null);
   const [reindexingRepoId, setReindexingRepoId] = useState<string | null>(null);
-  
+
   const {
     data,
     fetchNextPage,
@@ -93,108 +111,115 @@ export function RepositoryList() {
   } = useRepositories();
 
   const toggleConnection = useToggleRepositoryConnection();
-
-  // Infinite scroll observer
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadMoreRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (isFetchingNextPage) return;
-      if (observerRef.current) observerRef.current.disconnect();
-      
-      observerRef.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasNextPage) {
-          fetchNextPage();
-        }
-      });
-      
-      if (node) observerRef.current.observe(node);
-    },
-    [isFetchingNextPage, hasNextPage, fetchNextPage]
-  );
 
-  // Flatten all pages into a single array
   const allRepos = useMemo((): Repository[] => {
     return data?.pages.flatMap((page: RepositoriesPage) => page.repos) ?? [];
   }, [data]);
 
-  // Get unique languages for filter
   const languages = useMemo(() => {
     const langs = new Set<string>();
-    allRepos.forEach((repo: Repository) => {
+    allRepos.forEach((repo) => {
       if (repo.language) langs.add(repo.language);
     });
     return Array.from(langs).sort();
   }, [allRepos]);
 
-  // Apply filters
   const filteredRepos = useMemo((): Repository[] => {
-    return allRepos.filter((repo: Repository) => {
-      // Search filter
+    return allRepos.filter((repo) => {
       const matchesSearch =
         searchQuery === "" ||
         repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         repo.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (repo.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
 
-      // Status filter
-      let matchesFilter = true;
-      switch (filter) {
-        case "connected":
-          matchesFilter = repo.isConnected;
-          break;
-        case "not-connected":
-          matchesFilter = !repo.isConnected;
-          break;
-        case "public":
-          matchesFilter = !repo.isPrivate;
-          break;
-        case "private":
-          matchesFilter = repo.isPrivate;
-          break;
-      }
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "connected" && repo.isConnected) ||
+        (filter === "not-connected" && !repo.isConnected) ||
+        (filter === "public" && !repo.isPrivate) ||
+        (filter === "private" && repo.isPrivate);
 
-      // Language filter
       const matchesLanguage = !languageFilter || repo.language === languageFilter;
 
       return matchesSearch && matchesFilter && matchesLanguage;
     });
-  }, [allRepos, searchQuery, filter, languageFilter]);
+  }, [allRepos, filter, languageFilter, searchQuery]);
 
-  const handleToggleConnection = async (repo: Repository) => {
-    const { isConnected, ...repoData } = repo;
+  const loadMoreRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (isFetchingNextPage) return;
+      if (observerRef.current) observerRef.current.disconnect();
 
-    // If disconnecting, no need for API key check
-    if (isConnected) {
-      performToggle(repo, repoData);
-      return;
-    }
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasNextPage) {
+          fetchNextPage();
+        }
+      });
 
-    // Check if user already has an API key saved
-    try {
-      const res = await fetch("/api/settings/openai-key");
-      const data = await res.json();
+      if (node) observerRef.current.observe(node);
+    },
+    [fetchNextPage, hasNextPage, isFetchingNextPage]
+  );
 
-      if (data.hasKey) {
-        // Key already saved — proceed
-        performToggle(repo, repoData);
-        return;
+  const performToggle = (repo: Repository, repoData: Omit<Repository, "isConnected">) => {
+    const action = repo.isConnected ? "Disconnecting" : "Connecting";
+
+    toast.loading(`${action} ${repo.fullName}...`, { id: `toggle-${repo.githubId}` });
+
+    toggleConnection.mutate(
+      { githubId: repo.githubId, repoData },
+      {
+        onSuccess: (data) => {
+          if (data.isConnected) {
+            if (data.webhookCreated) {
+              toast.success(`Connected ${repo.fullName}`, {
+                id: `toggle-${repo.githubId}`,
+                description: "Webhook created successfully. AI code reviews are enabled.",
+              });
+            } else if (data.error) {
+              toast.warning(`Connected ${repo.fullName}`, {
+                id: `toggle-${repo.githubId}`,
+                description: data.error.includes("development mode") ||
+                  data.error.includes("localhost") ||
+                  data.error.includes("WEBHOOK_URL")
+                  ? "Set WEBHOOK_URL for automatic code reviews."
+                  : `Webhook creation failed: ${data.error}`,
+              });
+            } else {
+              toast.success(`Connected ${repo.fullName}`, {
+                id: `toggle-${repo.githubId}`,
+              });
+            }
+          } else {
+            toast.success(`Disconnected ${repo.fullName}`, {
+              id: `toggle-${repo.githubId}`,
+              description: "Webhook removed and AI reviews disabled.",
+            });
+          }
+        },
+        onError: (toggleError) => {
+          console.error("Failed to toggle connection:", toggleError);
+          toast.error(`Failed to ${action.toLowerCase()} ${repo.fullName}`, {
+            id: `toggle-${repo.githubId}`,
+            description:
+              toggleError instanceof Error ? toggleError.message : "Please try again.",
+          });
+        },
       }
-    } catch {
-      // If check fails, still prompt for key to be safe
-    }
-
-    // Prompt for OpenAI API key via a persistent toast with input
-    promptForApiKey(repo, repoData);
+    );
   };
 
-  const promptForApiKey = (repo: Repository, repoData: Omit<Repository, "isConnected">) => {
+  const promptForApiKey = (
+    repo: Repository,
+    repoData: Omit<Repository, "isConnected">
+  ) => {
     const toastId = `api-key-${repo.githubId}`;
     toast(
       <ApiKeyToastContent
         repoName={repo.fullName}
         onSubmit={async (apiKey) => {
           toast.dismiss(toastId);
-
           toast.loading("Saving API key...", { id: `saving-key-${repo.githubId}` });
 
           try {
@@ -209,14 +234,13 @@ export function RepositoryList() {
               toast.error(result.error || "Invalid API key", {
                 id: `saving-key-${repo.githubId}`,
               });
-              // Re-prompt
               promptForApiKey(repo, repoData);
               return;
             }
 
-            toast.success("API key saved!", { id: `saving-key-${repo.githubId}` });
+            toast.success("API key saved", { id: `saving-key-${repo.githubId}` });
             performToggle(repo, repoData);
-          } catch (err) {
+          } catch {
             toast.error("Failed to save API key. Please try again.", {
               id: `saving-key-${repo.githubId}`,
             });
@@ -226,7 +250,8 @@ export function RepositoryList() {
         onCancel={() => {
           toast.dismiss(toastId);
           toast.error("Cannot proceed without an OpenAI API key", {
-            description: "An API key is required for AI-powered code embeddings and reviews.",
+            description:
+              "An API key is required for AI-powered code embeddings and reviews.",
             duration: 5000,
           });
         }}
@@ -239,92 +264,60 @@ export function RepositoryList() {
     );
   };
 
-  const performToggle = (repo: Repository, repoData: Omit<Repository, "isConnected">) => {
-    const action = repo.isConnected ? "Disconnecting" : "Connecting";
-    
-    toast.loading(`${action} ${repo.fullName}...`, { id: `toggle-${repo.githubId}` });
-    
-    toggleConnection.mutate(
-      { githubId: repo.githubId, repoData },
-      {
-        onSuccess: (data) => {
-          if (data.isConnected) {
-            if (data.webhookCreated) {
-              toast.success(`Connected ${repo.fullName}`, {
-                id: `toggle-${repo.githubId}`,
-                description: "Webhook created successfully. AI code reviews are enabled!",
-              });
-            } else if (data.error) {
-              // In development mode, show info toast
-              if (data.error.includes("development mode") || data.error.includes("localhost") || data.error.includes("WEBHOOK_URL")) {
-                toast.success(`Connected ${repo.fullName}`, {
-                  id: `toggle-${repo.githubId}`,
-                  description: "Set WEBHOOK_URL for automatic code reviews.",
-                });
-              } else {
-                // Production webhook failure
-                toast.warning(`Connected ${repo.fullName}`, {
-                  id: `toggle-${repo.githubId}`,
-                  description: `Webhook creation failed: ${data.error}`,
-                });
-              }
-            } else {
-              toast.success(`Connected ${repo.fullName}`, {
-                id: `toggle-${repo.githubId}`,
-              });
-            }
-          } else {
-            toast.success(`Disconnected ${repo.fullName}`, {
-              id: `toggle-${repo.githubId}`,
-              description: "Webhook removed and AI reviews disabled.",
-            });
-          }
-        },
-        onError: (error) => {
-          console.error("Failed to toggle connection:", error);
-          toast.error(`Failed to ${action.toLowerCase()} ${repo.fullName}`, {
-            id: `toggle-${repo.githubId}`,
-            description: error instanceof Error ? error.message : "Please try again.",
-          });
-        }
+  const handleToggleConnection = async (repo: Repository) => {
+    const { isConnected, ...repoData } = repo;
+
+    if (isConnected) {
+      performToggle(repo, repoData);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/settings/openai-key");
+      const keyData = await res.json();
+
+      if (keyData.hasKey) {
+        performToggle(repo, repoData);
+        return;
       }
-    );
+    } catch {
+      // Prompt for the key if the optimistic pre-check fails.
+    }
+
+    promptForApiKey(repo, repoData);
   };
 
-  // Disconnect all repositories
   const handleDisconnectAll = async () => {
-    const connectedRepos = allRepos.filter((r) => r.isConnected);
+    const connectedRepos = allRepos.filter((repo) => repo.isConnected);
     if (connectedRepos.length === 0) {
       toast.info("No connected repositories to disconnect.");
       return;
     }
 
-    toast.loading(`Disconnecting ${connectedRepos.length} repositories...`, { id: "disconnect-all" });
+    toast.loading(`Disconnecting ${connectedRepos.length} repositories...`, {
+      id: "disconnect-all",
+    });
 
     try {
       const response = await fetch("/api/repositories/connected/all", {
         method: "DELETE",
       });
+      const result = await response.json();
 
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success("All repositories disconnected", {
-          id: "disconnect-all",
-          description: `Successfully disconnected ${data.disconnected} repositories.`,
-        });
-        // Refetch repositories to update the UI
-        window.location.reload();
-      } else {
-        toast.error("Failed to disconnect repositories", {
-          id: "disconnect-all",
-          description: data.error || "Please try again.",
-        });
+      if (!response.ok) {
+        throw new Error(result.error || "Please try again.");
       }
-    } catch (error) {
+
+      toast.success("All repositories disconnected", {
+        id: "disconnect-all",
+        description: `Successfully disconnected ${result.disconnected} repositories.`,
+      });
+      window.location.reload();
+    } catch (disconnectError) {
       toast.error("Failed to disconnect repositories", {
         id: "disconnect-all",
-        description: error instanceof Error ? error.message : "Please try again.",
+        description:
+          disconnectError instanceof Error ? disconnectError.message : "Please try again.",
       });
     }
   };
@@ -341,20 +334,21 @@ export function RepositoryList() {
       const response = await fetch(`/api/repositories/${repo.id}/reindex`, {
         method: "POST",
       });
-      const data = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to queue reindex");
+        throw new Error(result.error || "Failed to queue reindex");
       }
 
       toast.success(`Reindex queued for ${repo.fullName}`, {
         id: `reindex-${repo.id}`,
       });
       await refetch();
-    } catch (error) {
+    } catch (reindexError) {
       toast.error("Failed to queue reindex", {
         id: `reindex-${repo.id}`,
-        description: error instanceof Error ? error.message : "Please try again.",
+        description:
+          reindexError instanceof Error ? reindexError.message : "Please try again.",
       });
     } finally {
       setReindexingRepoId(null);
@@ -362,135 +356,109 @@ export function RepositoryList() {
   };
 
   const totalCount = data?.pages[0]?.totalCount ?? 0;
-  const connectedCount = allRepos.filter((r) => r.isConnected).length;
+  const connectedCount = allRepos.filter((repo) => repo.isConnected).length;
+  const indexedCount = allRepos.filter((repo) => repo.indexingStatus === "completed").length;
+  const failedIndexCount = allRepos.filter((repo) => repo.indexingStatus === "failed").length;
+  const filterOptions: Array<{ value: FilterType; label: string; count?: number }> = [
+    { value: "all", label: "All", count: allRepos.length },
+    { value: "connected", label: "Connected", count: connectedCount },
+    { value: "not-connected", label: "Available", count: allRepos.length - connectedCount },
+    { value: "public", label: "Public" },
+    { value: "private", label: "Private" },
+  ];
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <span className="ml-3 text-muted-foreground">Loading repositories...</span>
-      </div>
-    );
+    return <LoadingState label="Loading repositories..." />;
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Failed to load repositories</h3>
-        <p className="text-muted-foreground text-sm">{error?.message || "Something went wrong"}</p>
-      </div>
+      <ErrorState
+        title="Failed to load repositories"
+        description={error?.message || "Something went wrong while reading GitHub repositories."}
+      />
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Your Repositories</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalCount} total repositories • {connectedCount} connected • {filteredRepos.length} shown
+      <PageHeader
+        icon={FolderGit2}
+        eyebrow="Repository control"
+        title="Repositories"
+        description="Connect GitHub repositories, configure review behavior, and monitor indexing readiness for AI code reviews."
+        meta={
+          <>
+            <StatusBadge tone="info">{totalCount} total</StatusBadge>
+            <StatusBadge tone="good">{connectedCount} connected</StatusBadge>
+            <StatusBadge tone={failedIndexCount > 0 ? "warn" : "idle"}>
+              {indexedCount} indexed
+            </StatusBadge>
+          </>
+        }
+        actions={
+          connectedCount > 0 ? (
+            <button
+              onClick={handleDisconnectAll}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/10 px-3 text-sm font-medium text-rose-200 transition-colors hover:bg-rose-400/15"
+            >
+              <Trash2 className="h-4 w-4" />
+              Disconnect All ({connectedCount})
+            </button>
+          ) : null
+        }
+      />
+
+      <GlowPanel className="p-4" accent="cyan">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <SearchInput
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              placeholder="Search repositories, owners, or descriptions..."
+              containerClassName="w-full xl:max-w-xl"
+            />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <SegmentedControl
+                value={filter}
+                options={filterOptions}
+                onValueChange={setFilter}
+                className="w-full sm:w-auto"
+              />
+              {languages.length > 0 && (
+                <label className="relative">
+                  <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <select
+                    value={languageFilter || ""}
+                    onChange={(event) => setLanguageFilter(event.target.value || null)}
+                    className="h-10 w-full rounded-lg border border-border bg-secondary/70 pl-9 pr-9 text-sm text-muted-foreground outline-none transition-colors focus:border-primary sm:w-48"
+                  >
+                    <option value="">All languages</option>
+                    {languages.map((lang) => (
+                      <option key={lang} value={lang}>
+                        {lang}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredRepos.length} of {totalCount} repositories.
           </p>
         </div>
-        {connectedCount > 0 && (
-          <button
-            onClick={handleDisconnectAll}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 hover:border-red-500/30 transition-all"
-          >
-            <Trash2 className="w-4 h-4" />
-            Disconnect All ({connectedCount})
-          </button>
-        )}
-      </div>
+      </GlowPanel>
 
-      {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search Box */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search repositories..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Filter Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-secondary border border-border rounded-lg text-muted-foreground hover:border-accent transition-colors"
-          >
-            <Filter className="w-4 h-4" />
-            <span className="capitalize">{filter.replace("-", " ")}</span>
-            <ChevronDown className="w-4 h-4" />
-          </button>
-          
-          {showFilterDropdown && (
-            <>
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={() => setShowFilterDropdown(false)} 
-              />
-              <div className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-lg shadow-xl z-20 py-1">
-                {(["all", "connected", "not-connected", "public", "private"] as FilterType[]).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => {
-                      setFilter(f);
-                      setShowFilterDropdown(false);
-                    }}
-                    className={`w-full px-4 py-2 text-left text-sm hover:bg-accent transition-colors flex items-center justify-between ${
-                      filter === f ? "text-primary" : "text-foreground"
-                    }`}
-                  >
-                    <span className="capitalize">{f.replace("-", " ")}</span>
-                    {filter === f && <Check className="w-4 h-4" />}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Language Filter */}
-        {languages.length > 0 && (
-          <select
-            value={languageFilter || ""}
-            onChange={(e) => setLanguageFilter(e.target.value || null)}
-            className="px-4 py-2.5 bg-secondary border border-border rounded-lg text-muted-foreground focus:outline-none focus:border-primary transition-colors"
-          >
-            <option value="">All Languages</option>
-            {languages.map((lang) => (
-              <option key={lang} value={lang}>
-                {lang}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      {/* Repository Grid */}
       {filteredRepos.length === 0 ? (
-        <div className="text-center py-12">
-          <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">No repositories found</h3>
-          <p className="text-muted-foreground text-sm">Try adjusting your search or filters</p>
-        </div>
+        <EmptyState
+          icon={Search}
+          title="No repositories found"
+          description="Try adjusting your search, connection filter, or language filter."
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredRepos.map((repo: Repository) => (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {filteredRepos.map((repo) => (
             <RepositoryCard
               key={repo.githubId}
               repo={repo}
@@ -511,16 +479,15 @@ export function RepositoryList() {
         />
       )}
 
-      {/* Load More Trigger */}
       {hasNextPage && (
         <div ref={loadMoreRef} className="flex justify-center py-6">
           {isFetchingNextPage ? (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin" />
               <span>Loading more...</span>
             </div>
           ) : (
-            <span className="text-muted-foreground text-sm">Scroll for more</span>
+            <span className="text-sm text-muted-foreground">Scroll for more</span>
           )}
         </div>
       )}
@@ -528,61 +495,55 @@ export function RepositoryList() {
   );
 }
 
-interface ApiKeyToastContentProps {
+function ApiKeyToastContent({
+  repoName,
+  onSubmit,
+  onCancel,
+}: {
   repoName: string;
   onSubmit: (apiKey: string) => void;
   onCancel: () => void;
-}
-
-function ApiKeyToastContent({ repoName, onSubmit, onCancel }: ApiKeyToastContentProps) {
+}) {
   const [key, setKey] = useState("");
 
   return (
     <div className="w-full space-y-3">
       <div className="flex items-center gap-2">
-        <Key className="w-4 h-4 text-primary shrink-0" />
-        <p className="font-semibold text-sm">OpenAI API Key Required</p>
+        <Key className="h-4 w-4 shrink-0 text-primary" />
+        <p className="text-sm font-semibold">OpenAI API Key Required</p>
       </div>
-      <p className="text-xs text-muted-foreground">
-        To connect <span className="font-medium text-foreground">{repoName}</span>, enter your OpenAI API key. It powers code embeddings for AI reviews.
+      <p className="text-xs leading-5 text-muted-foreground">
+        To connect <span className="font-medium text-foreground">{repoName}</span>, enter
+        your OpenAI API key. It powers code embeddings and AI review context.
       </p>
       <input
         type="password"
         placeholder="sk-..."
         value={key}
-        onChange={(e) => setKey(e.target.value)}
-        className="w-full px-3 py-2 text-sm bg-secondary border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
+        onChange={(event) => setKey(event.target.value)}
+        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
         autoFocus
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && key.trim()) onSubmit(key.trim());
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && key.trim()) onSubmit(key.trim());
         }}
       />
       <div className="flex gap-2">
         <button
           onClick={() => key.trim() && onSubmit(key.trim())}
           disabled={!key.trim()}
-          className="flex-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 disabled:opacity-50 transition-colors"
+          className="flex-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
-          Save & Connect
+          Save and connect
         </button>
         <button
           onClick={onCancel}
-          className="px-3 py-1.5 text-sm font-medium rounded-lg border border-border hover:bg-accent transition-colors"
+          className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent"
         >
           Cancel
         </button>
       </div>
     </div>
   );
-}
-
-interface RepositoryCardProps {
-  repo: Repository;
-  onToggleConnection: () => void;
-  onSettingsClick: () => void;
-  onReindexClick: () => void;
-  isToggling: boolean;
-  isReindexing: boolean;
 }
 
 function RepositoryCard({
@@ -592,116 +553,143 @@ function RepositoryCard({
   onReindexClick,
   isToggling,
   isReindexing,
-}: RepositoryCardProps) {
-  const languageColor = repo.language ? LANGUAGE_COLORS[repo.language] || "bg-zinc-500" : null;
+}: {
+  repo: Repository;
+  onToggleConnection: () => void;
+  onSettingsClick: () => void;
+  onReindexClick: () => void;
+  isToggling: boolean;
+  isReindexing: boolean;
+}) {
+  const languageColor = repo.language ? LANGUAGE_COLORS[repo.language] || "bg-zinc-400" : null;
   const canEditSettings = repo.isConnected && Boolean(repo.id);
   const indexingLabel = getIndexingLabel(repo);
   const IndexingIcon = getIndexingIcon(repo.indexingStatus);
 
   return (
-    <div className="group bg-card/50 border border-border rounded-xl p-5 hover:border-accent hover:bg-card/80 transition-all">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          {/* Repo Name */}
-          <div className="flex items-center gap-2 mb-2">
-            {repo.isPrivate ? (
-              <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-            ) : (
-              <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
+    <GlowPanel interactive className="p-5" accent={repo.isConnected ? "primary" : "cyan"}>
+      <div className="flex flex-col gap-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex items-center gap-2">
+              {repo.isPrivate ? (
+                <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+              ) : (
+                <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+              )}
+              <a
+                href={repo.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate font-medium transition-colors hover:text-primary"
+              >
+                {repo.fullName}
+              </a>
+            </div>
+            {repo.description && (
+              <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                {repo.description}
+              </p>
             )}
-            <a
-              href={repo.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium hover:text-primary transition-colors truncate"
-            >
-              {repo.fullName}
-            </a>
           </div>
 
-          {/* Description */}
-          {repo.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-              {repo.description}
-            </p>
+          <StatusBadge tone={repo.isConnected ? "good" : "idle"}>
+            {repo.isConnected ? "Connected" : "Available"}
+          </StatusBadge>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          {repo.language && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className={cn("h-2.5 w-2.5 rounded-full", languageColor)} />
+              {repo.language}
+            </span>
           )}
-
-          {/* Meta Info */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            {repo.language && (
-              <div className="flex items-center gap-1.5">
-                <span className={`w-2.5 h-2.5 rounded-full ${languageColor}`} />
-                <span>{repo.language}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <Star className="w-3.5 h-3.5" />
-              <span>{repo.stars.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <GitFork className="w-3.5 h-3.5" />
-              <span>{repo.forks.toLocaleString()}</span>
-            </div>
-          </div>
-
+          <span className="inline-flex items-center gap-1">
+            <Star className="h-3.5 w-3.5" />
+            {repo.stars.toLocaleString()}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <GitFork className="h-3.5 w-3.5" />
+            {repo.forks.toLocaleString()}
+          </span>
           {repo.isConnected && (
-            <div
-              className={`mt-3 flex w-fit max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${getIndexingTone(repo.indexingStatus)}`}
+            <span
+              className={cn(
+                "inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1",
+                getIndexingTone(repo.indexingStatus)
+              )}
               title={repo.lastIndexError ?? indexingLabel}
             >
-              <IndexingIcon className={`h-3.5 w-3.5 shrink-0 ${repo.indexingStatus === "indexing" ? "animate-spin" : ""}`} />
+              <IndexingIcon
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0",
+                  repo.indexingStatus === "indexing" && "animate-spin"
+                )}
+              />
               <span className="truncate">{indexingLabel}</span>
-            </div>
+            </span>
           )}
         </div>
 
-        {/* Connect Button */}
-        <div className="flex shrink-0 items-center gap-2">
-          {canEditSettings && (
-            <>
-              <button
-                onClick={onReindexClick}
-                disabled={isReindexing}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-accent hover:bg-accent hover:text-foreground disabled:opacity-60"
-                title="Reindex repository"
-                aria-label={`Reindex ${repo.fullName}`}
-              >
-                <RefreshCw className={`h-4 w-4 ${isReindexing ? "animate-spin" : ""}`} />
-              </button>
-              <button
-                onClick={onSettingsClick}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-accent hover:bg-accent hover:text-foreground"
-                title="Review settings"
-                aria-label={`Review settings for ${repo.fullName}`}
-              >
-                <Settings2 className="h-4 w-4" />
-              </button>
-            </>
-          )}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 pt-4">
+          <div className="flex items-center gap-2">
+            {canEditSettings && (
+              <>
+                <IconButton
+                  onClick={onReindexClick}
+                  disabled={isReindexing}
+                  label={`Reindex ${repo.fullName}`}
+                >
+                  <RefreshCw className={cn("h-4 w-4", isReindexing && "animate-spin")} />
+                </IconButton>
+                <IconButton onClick={onSettingsClick} label={`Review settings for ${repo.fullName}`}>
+                  <Settings2 className="h-4 w-4" />
+                </IconButton>
+              </>
+            )}
+          </div>
+
           <button
             onClick={onToggleConnection}
             disabled={isToggling}
-            className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+            className={cn(
+              "inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors disabled:opacity-60",
               repo.isConnected
-                ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
-                : "bg-secondary border border-border hover:border-accent hover:bg-accent"
-            }`}
-          >
-            {repo.isConnected ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                Connected
-              </>
-            ) : (
-              <>
-                <Plus className="w-3.5 h-3.5" />
-                Connect
-              </>
+                ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
+                : "border-border bg-secondary/70 text-foreground hover:border-primary/40 hover:bg-accent"
             )}
+          >
+            {repo.isConnected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {repo.isConnected ? "Connected" : "Connect"}
           </button>
         </div>
       </div>
-    </div>
+    </GlowPanel>
+  );
+}
+
+function IconButton({
+  children,
+  onClick,
+  disabled,
+  label,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-secondary/70 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground disabled:opacity-60"
+      title={label}
+      aria-label={label}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -726,18 +714,19 @@ function getIndexingIcon(status: Repository["indexingStatus"]) {
 }
 
 function getIndexingTone(status: Repository["indexingStatus"]) {
-  if (status === "completed") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
-  if (status === "failed") return "border-red-500/20 bg-red-500/10 text-red-300";
-  if (status === "indexing") return "border-primary/20 bg-primary/10 text-primary";
-  return "border-border bg-secondary text-muted-foreground";
+  if (status === "completed") return "border-emerald-400/20 bg-emerald-400/10 text-emerald-200";
+  if (status === "failed") return "border-rose-400/20 bg-rose-400/10 text-rose-200";
+  if (status === "indexing") return "border-cyan-400/20 bg-cyan-400/10 text-cyan-200";
+  return "border-border bg-secondary/70 text-muted-foreground";
 }
 
-interface ReviewSettingsModalProps {
+function ReviewSettingsModal({
+  repo,
+  onClose,
+}: {
   repo: Repository;
   onClose: () => void;
-}
-
-function ReviewSettingsModal({ repo, onClose }: ReviewSettingsModalProps) {
+}) {
   const [settings, setSettings] = useState<ReviewSettings>({
     mode: "balanced",
     minimumSeverityToPost: "warning",
@@ -756,23 +745,23 @@ function ReviewSettingsModal({ repo, onClose }: ReviewSettingsModalProps) {
       setIsLoading(true);
       try {
         const response = await fetch(`/api/repositories/${repo.id}/review-settings`);
-        const data = await response.json();
+        const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Failed to load review settings");
+          throw new Error(result.error || "Failed to load review settings");
         }
 
         if (isMounted) {
           setSettings({
-            mode: data.settings.mode,
-            minimumSeverityToPost: data.settings.minimumSeverityToPost,
-            customRules: data.settings.customRules ?? "",
-            useRepositoryRules: data.settings.useRepositoryRules,
+            mode: result.settings.mode,
+            minimumSeverityToPost: result.settings.minimumSeverityToPost,
+            customRules: result.settings.customRules ?? "",
+            useRepositoryRules: result.settings.useRepositoryRules,
           });
         }
-      } catch (error) {
+      } catch (loadError) {
         toast.error("Failed to load review settings", {
-          description: error instanceof Error ? error.message : "Please try again.",
+          description: loadError instanceof Error ? loadError.message : "Please try again.",
         });
       } finally {
         if (isMounted) setIsLoading(false);
@@ -795,19 +784,19 @@ function ReviewSettingsModal({ repo, onClose }: ReviewSettingsModalProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
-      const data = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to save review settings");
+        throw new Error(result.error || "Failed to save review settings");
       }
 
       toast.success("Review settings saved", {
         description: `${repo.fullName} will use the updated review profile.`,
       });
       onClose();
-    } catch (error) {
+    } catch (saveError) {
       toast.error("Failed to save review settings", {
-        description: error instanceof Error ? error.message : "Please try again.",
+        description: saveError instanceof Error ? saveError.message : "Please try again.",
       });
     } finally {
       setIsSaving(false);
@@ -815,15 +804,20 @@ function ReviewSettingsModal({ repo, onClose }: ReviewSettingsModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-xl border border-border bg-card shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+      <GlowPanel className="max-h-[92vh] w-full max-w-2xl overflow-y-auto" accent="violet">
         <div className="flex items-start justify-between gap-4 border-b border-border p-5">
           <div className="min-w-0">
             <div className="mb-2 flex items-center gap-2 text-primary">
               <ShieldCheck className="h-4 w-4" />
-              <span className="text-xs font-semibold uppercase tracking-wide">Review profile</span>
+              <span className="text-xs font-semibold uppercase tracking-wide">
+                Review profile
+              </span>
             </div>
             <h3 className="truncate text-lg font-semibold">{repo.fullName}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Tune how Rabbit Stack comments on this repository.
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -835,29 +829,18 @@ function ReviewSettingsModal({ repo, onClose }: ReviewSettingsModalProps) {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center p-10 text-muted-foreground">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Loading settings...
-          </div>
+          <LoadingState label="Loading settings..." />
         ) : (
           <div className="space-y-5 p-5">
             <div>
               <label className="mb-2 block text-sm font-medium">Review mode</label>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {REVIEW_MODES.map((mode) => (
-                  <button
-                    key={mode.value}
-                    onClick={() => setSettings((current) => ({ ...current, mode: mode.value }))}
-                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                      settings.mode === mode.value
-                        ? "border-primary bg-primary/15 text-primary"
-                        : "border-border bg-secondary text-muted-foreground hover:border-accent hover:text-foreground"
-                    }`}
-                  >
-                    {mode.label}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                value={settings.mode}
+                options={REVIEW_MODES}
+                onValueChange={(mode) =>
+                  setSettings((current) => ({ ...current, mode }))
+                }
+              />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -871,7 +854,7 @@ function ReviewSettingsModal({ repo, onClose }: ReviewSettingsModalProps) {
                       minimumSeverityToPost: event.target.value as ReviewSeverity,
                     }))
                   }
-                  className="w-full rounded-lg border border-border bg-secondary px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-primary"
+                  className="h-10 w-full rounded-lg border border-border bg-secondary/70 px-3 text-sm outline-none transition-colors focus:border-primary"
                 >
                   {SEVERITY_OPTIONS.map((severity) => (
                     <option key={severity.value} value={severity.value}>
@@ -881,7 +864,7 @@ function ReviewSettingsModal({ repo, onClose }: ReviewSettingsModalProps) {
                 </select>
               </label>
 
-              <label className="flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary px-4 py-3">
+              <label className="flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/50 px-4 py-3">
                 <span className="text-sm font-medium">Use repo rules file</span>
                 <input
                   type="checkbox"
@@ -909,7 +892,7 @@ function ReviewSettingsModal({ repo, onClose }: ReviewSettingsModalProps) {
                 }
                 rows={7}
                 placeholder="Example: Flag missing authorization checks on API routes. Prefer small, focused comments over broad style feedback."
-                className="w-full resize-y rounded-lg border border-border bg-secondary px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+                className="w-full resize-y rounded-lg border border-border bg-secondary/70 px-3 py-2.5 text-sm leading-6 outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
               />
             </label>
           </div>
@@ -925,13 +908,13 @@ function ReviewSettingsModal({ repo, onClose }: ReviewSettingsModalProps) {
           <button
             onClick={saveSettings}
             disabled={isLoading || isSaving}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
             {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
             Save settings
           </button>
         </div>
-      </div>
+      </GlowPanel>
     </div>
   );
 }

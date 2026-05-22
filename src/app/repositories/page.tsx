@@ -1,8 +1,8 @@
 import { requireAuth } from "../../../lib/auth-utils";
 import { getGithubProfile } from "../../../module/github/github";
 import { Github } from "lucide-react";
-import Link from "next/link";
 import { RepositoryList } from "../../components/RepositoryList";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function RepositoriesPage() {
   const session = await requireAuth();
@@ -11,29 +11,20 @@ export default async function RepositoriesPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card border border-border rounded-xl p-8 text-center">
-          <Github className="w-16 h-16 mx-auto mb-6" />
-          <h1 className="text-2xl font-bold mb-2">Connect GitHub</h1>
-          <p className="text-muted-foreground mb-6">
-            To see your repositories, please connect your GitHub account.
-          </p>
-          <Link 
-            href="/api/auth/signin"
-            className="inline-block bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/80 transition-colors"
-          >
-            Connect GitHub Account
-          </Link>
-        </div>
-      </div>
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center px-4 py-8">
+        <EmptyState
+          icon={Github}
+          title="Connect GitHub"
+          description="Connect your GitHub account to browse repositories and enable AI review automation."
+          action={{ label: "Connect GitHub Account", href: "/api/auth/signin" }}
+        />
+      </main>
     );
   }
 
   return (
-    <div className="font-sans">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <RepositoryList />
-      </main>
-    </div>
+    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <RepositoryList />
+    </main>
   );
 }
