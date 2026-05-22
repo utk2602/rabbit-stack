@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Header } from "@/components/header";
 import { HeroSection } from "@/components/hero";
 import { LogosSection } from "@/components/logos-section";
+import { DocsSection } from "@/components/docs-section";
 import { Footer } from "@/components/footer";
 import { AuthModal } from "@/components/auth-modal";
 
@@ -15,6 +16,7 @@ export default function LandingPage() {
       <Header onAuthClick={() => setAuthOpen(true)} />
       <HeroSection onAuthClick={() => setAuthOpen(true)} />
       <LogosSection />
+      <DocsSection />
       <Footer />
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </div>
