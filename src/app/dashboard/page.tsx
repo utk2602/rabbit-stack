@@ -1,20 +1,33 @@
-import { requireAuth } from "../../../lib/auth-utils";
-import { getUserContributionsByUserId, getContributionStatsByUserId, getMonthlyActivityStatsByUserId, getGithubProfile } from "../../../module/github/github";
-import { ContributionGraph } from "../../components/ContributionGraph";
-import { WaveCard } from "../../components/WaveCard";
-import { 
-  GitCommit, 
-  GitPullRequest, 
-  GitPullRequestDraft, 
-  Github, 
-  LayoutDashboard, 
-  Star, 
-  TrendingUp, 
-  Users,
-  Code2,
-  Activity
-} from "lucide-react";
 import Link from "next/link";
+import {
+  Activity,
+  ArrowRight,
+  Code2,
+  DatabaseZap,
+  FolderGit2,
+  GitCommit,
+  GitPullRequest,
+  GitPullRequestDraft,
+  Github,
+  Radar,
+  ShieldCheck,
+  TrendingUp,
+} from "lucide-react";
+
+import { ReviewSignal } from "@/components/brand/review-signal";
+import { EmptyState } from "@/components/ui/empty-state";
+import { GlowPanel } from "@/components/ui/glow-panel";
+import { MetricCard } from "@/components/ui/metric-card";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge, StatusPulse } from "@/components/ui/status-badge";
+import { requireAuth } from "../../../lib/auth-utils";
+import {
+  getContributionStatsByUserId,
+  getGithubProfile,
+  getMonthlyActivityStatsByUserId,
+  getUserContributionsByUserId,
+} from "../../../module/github/github";
+import { ContributionGraph } from "../../components/ContributionGraph";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -23,235 +36,306 @@ export default async function DashboardPage() {
     getGithubProfile(userId).catch(() => null),
     getContributionStatsByUserId(userId).catch(() => null),
     getMonthlyActivityStatsByUserId(userId).catch(() => null),
-    getUserContributionsByUserId(userId).catch(() => null)
+    getUserContributionsByUserId(userId).catch(() => null),
   ]);
 
   if (!profile || !stats) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card border border-border rounded-xl p-8 text-center">
-          <Github className="w-16 h-16 mx-auto mb-6" />
-          <h1 className="text-2xl font-bold mb-2">Connect GitHub</h1>
-          <p className="text-zinc-400 mb-6">
-            To see your dashboard stats, please connect your GitHub account.
-          </p>
-          <Link 
-            href="/api/auth/signin"
-            className="inline-block bg-primary text-primary-foreground px-6 py-2 rounded-lg font-medium hover:bg-primary/80 transition-colors"
-          >
-            Connect GitHub Account
-          </Link>
-        </div>
-      </div>
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center px-4 py-8">
+        <EmptyState
+          icon={Github}
+          title="Connect GitHub"
+          description="Connect your GitHub account to unlock repository indexing, AI pull request reviews, and contribution intelligence."
+          action={{ label: "Connect GitHub Account", href: "/api/auth/signin" }}
+        />
+      </main>
     );
   }
 
+  const topRepositories = stats.topRepositories ?? [];
+  const maxMonthly = Math.max(
+    ...((monthlyStats ?? []).map((month) => month.totalContributions)),
+    1
+  );
+
   return (
-    <div className="font-sans">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            Welcome back, <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-amber-500">{profile.name || profile.login}</span>
-          </h1>
-          <p className="text-muted-foreground">Here's what's happening with your code reviews and repositories.</p>
-        </div>
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <PageHeader
+        icon={Radar}
+        eyebrow="Command center"
+        title={`Welcome back, ${profile.name || profile.login}`}
+        description="A live operating view of your connected repositories, review flow, contribution rhythm, and AI reviewer readiness."
+        meta={
+          <>
+            <StatusBadge tone="good">AI reviewer online</StatusBadge>
+            <StatusBadge tone="info">{stats.totalRepositories} repositories tracked</StatusBadge>
+          </>
+        }
+        actions={
+          <>
+            <Link
+              href="/repositories"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-secondary/70 px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-accent"
+            >
+              <FolderGit2 className="h-4 w-4" />
+              Repositories
+            </Link>
+            <Link
+              href="/dashboard/reviews"
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <GitPullRequestDraft className="h-4 w-4" />
+              Review activity
+            </Link>
+          </>
+        }
+      />
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard 
-            title="Total Contributions" 
-            value={stats.totalContributions} 
-            icon={<Activity className="w-5 h-5 text-emerald-400" />}
-            trend="+12% from last month" // Mock trend for now
-          />
-          <StatCard 
-            title="Pull Requests" 
-            value={stats.totalPullRequests} 
-            icon={<GitPullRequest className="w-5 h-5 text-blue-400" />}
-          />
-          <StatCard 
-            title="Code Reviews" 
-            value={stats.totalReviews} 
-            icon={<GitPullRequestDraft className="w-5 h-5 text-purple-400" />}
-          />
-          <StatCard 
-            title="Repositories" 
-            value={stats.totalRepositories} 
-            icon={<Code2 className="w-5 h-5 text-primary" />}
-          />
-        </div>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          title="Total Contributions"
+          value={stats.totalContributions}
+          detail="Synced from GitHub activity"
+          icon={Activity}
+          tone="primary"
+          trend={<StatusPulse />}
+        />
+        <MetricCard
+          title="Pull Requests"
+          value={stats.totalPullRequests}
+          detail="Reviewable delivery stream"
+          icon={GitPullRequest}
+          tone="cyan"
+        />
+        <MetricCard
+          title="Code Reviews"
+          value={stats.totalReviews}
+          detail="AI and human review history"
+          icon={GitPullRequestDraft}
+          tone="violet"
+        />
+        <MetricCard
+          title="Repositories"
+          value={stats.totalRepositories}
+          detail={`${topRepositories.length} high-activity repos surfaced`}
+          icon={Code2}
+          tone="neutral"
+        />
+      </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-card/30 border border-border rounded-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-muted-foreground" />
+      <section className="grid gap-6 xl:grid-cols-[1.55fr_0.9fr]">
+        <div className="space-y-6">
+          <GlowPanel className="p-6" accent="cyan">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="flex items-center gap-2 text-lg font-semibold">
+                  <TrendingUp className="h-5 w-5 text-cyan-200" />
                   Contribution Activity
                 </h2>
-                <select className="bg-secondary border border-border text-sm rounded-lg px-3 py-1 text-muted-foreground outline-none focus:border-primary">
-                  <option>Last 12 Months</option>
-                </select>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Monthly rhythm across commits, pull requests, issues, and reviews.
+                </p>
               </div>
-              
-              {monthlyStats && monthlyStats.length > 0 ? (
-                <div className="h-52 flex items-end gap-1.5 w-full px-2">
-                  {monthlyStats.slice().reverse().map((month, i) => {
-                    const max = Math.max(...(monthlyStats.map(m => m.totalContributions)), 1);
-                    const heightPercent = max > 0 ? (month.totalContributions / max) * 100 : 0;
-                    const maxBarHeight = 180; 
-                    const barHeight = month.totalContributions > 0 
-                      ? Math.max((heightPercent / 100) * maxBarHeight, 12) 
-                      : 4;
-                    
+              <StatusBadge tone="idle">Last 12 months</StatusBadge>
+            </div>
+
+            {monthlyStats && monthlyStats.length > 0 ? (
+              <div className="flex h-56 items-end gap-2 overflow-hidden rounded-lg border border-border/70 bg-background/35 px-3 py-4">
+                {monthlyStats
+                  .slice()
+                  .reverse()
+                  .map((month, index) => {
+                    const heightPercent = (month.totalContributions / maxMonthly) * 100;
+                    const barHeight =
+                      month.totalContributions > 0 ? Math.max(heightPercent, 8) : 2;
+
                     return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-2 group min-w-0">
-                        <div className="w-full relative flex items-end justify-center" style={{ height: `${maxBarHeight}px` }}>
-                          <div 
-                            className={`w-full max-w-7 mx-auto rounded-t-md transition-all duration-300 ${
-                              month.totalContributions > 0 
-                                ? 'bg-linear-to-t from-emerald-600 to-emerald-400 hover:from-emerald-500 hover:to-emerald-300 shadow-lg shadow-emerald-500/20' 
-                                : 'bg-zinc-800'
-                            }`}
-                            style={{ height: `${barHeight}px` }}
-                          ></div>
-                          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-popover text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-border pointer-events-none z-10 shadow-xl">
-                            <div className="font-semibold">{month.monthName} {month.year}</div>
-                            <div className="text-muted-foreground">{month.totalContributions} contributions</div>
+                      <div
+                        key={`${month.monthName}-${month.year}-${index}`}
+                        className="group flex min-w-0 flex-1 flex-col items-center gap-2"
+                      >
+                        <div className="relative flex h-44 w-full items-end justify-center">
+                          <div
+                            className="w-full max-w-8 rounded-t-md bg-linear-to-t from-primary/35 via-cyan-300/65 to-primary shadow-[0_0_24px_rgba(124,247,200,0.12)] transition-all duration-300 group-hover:from-primary/60 group-hover:to-cyan-200"
+                            style={{ height: `${barHeight}%` }}
+                          />
+                          <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 min-w-36 -translate-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-xs opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
+                            <p className="font-semibold">
+                              {month.monthName} {month.year}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {month.totalContributions} contributions
+                            </p>
                           </div>
                         </div>
-                        <span className="text-[10px] text-zinc-500 font-medium truncate w-full text-center">
+                        <span className="w-full truncate text-center text-[11px] font-medium text-muted-foreground">
                           {month.monthName.substring(0, 3)}
                         </span>
                       </div>
                     );
                   })}
-                </div>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  <div className="text-center">
-                    <Activity className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">No contribution data available</p>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <EmptyState
+                icon={Activity}
+                title="No contribution data"
+                description="Once GitHub activity syncs, your monthly contribution rhythm will appear here."
+                className="bg-background/30"
+              />
+            )}
+          </GlowPanel>
 
-            <div className="bg-card/30 border border-border rounded-xl p-6">
-               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-muted-foreground" />
-                  Daily Contributions
+          <GlowPanel className="p-6" accent="primary">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="flex items-center gap-2 text-lg font-semibold">
+                  <DatabaseZap className="h-5 w-5 text-primary" />
+                  Daily Contribution Graph
                 </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Heatmap readout for long-range delivery consistency.
+                </p>
               </div>
-              {contributions ? (
-                <ContributionGraph calendar={contributions.contributionCalendar} />
+            </div>
+            {contributions ? (
+              <ContributionGraph calendar={contributions.contributionCalendar} />
+            ) : (
+              <EmptyState
+                icon={Activity}
+                title="No daily data"
+                description="Daily GitHub contribution cells will render after the next sync."
+                className="bg-background/30"
+              />
+            )}
+          </GlowPanel>
+        </div>
+
+        <div className="space-y-6">
+          <GlowPanel className="p-5" accent="primary">
+            <div className="grid gap-5 sm:grid-cols-[150px_1fr] xl:grid-cols-1">
+              <ReviewSignal className="mx-auto w-full max-w-[170px]" />
+              <div>
+                <StatusBadge tone="good">System operational</StatusBadge>
+                <h2 className="mt-4 text-xl font-semibold">Rabbit Stack AI</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Your reviewer is ready to inspect pull requests, map repository
+                  context, and post focused comments when connected repos receive new work.
+                </p>
+                <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-lg border border-border bg-background/35 p-3">
+                    <p className="text-muted-foreground">Mode</p>
+                    <p className="mt-1 font-semibold text-primary">Balanced</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-background/35 p-3">
+                    <p className="text-muted-foreground">Signal</p>
+                    <p className="mt-1 font-semibold text-cyan-200">Live</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </GlowPanel>
+
+          <GlowPanel className="p-5" accent="violet">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">Quick Actions</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Move directly into the review workflow.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <ActionLink
+                href="/dashboard/reviews"
+                icon={GitPullRequest}
+                title="Inspect reviews"
+                description="Scan recent AI review reports"
+              />
+              <ActionLink
+                href="/repositories"
+                icon={FolderGit2}
+                title="Connect repository"
+                description="Enable indexing and webhooks"
+              />
+              <ActionLink
+                href="/dashboard/security"
+                icon={ShieldCheck}
+                title="Check security posture"
+                description="Review webhooks, secrets, and audit risk"
+              />
+            </div>
+          </GlowPanel>
+
+          <GlowPanel className="overflow-hidden" accent="cyan">
+            <div className="border-b border-border p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-lg font-semibold">Top Repositories</h2>
+                <Link
+                  href="/repositories"
+                  className="text-sm font-medium text-primary hover:text-primary/80"
+                >
+                  View all
+                </Link>
+              </div>
+            </div>
+            <div className="divide-y divide-border">
+              {topRepositories.length === 0 ? (
+                <div className="p-5 text-sm text-muted-foreground">
+                  No repository activity has been synced yet.
+                </div>
               ) : (
-                <div className="text-muted-foreground text-center py-8">No contribution data available</div>
+                topRepositories.slice(0, 5).map((repo, index) => (
+                  <div
+                    key={`${repo.name}-${index}`}
+                    className="flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-accent/40"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-secondary/70 text-muted-foreground">
+                        <GitCommit className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{repo.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {repo.commits.toLocaleString()} commits
+                        </p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                ))
               )}
             </div>
-
-            <div className="bg-card/30 border border-border rounded-xl overflow-hidden">
-              <div className="p-6 border-b border-border flex justify-between items-center">
-                <h2 className="text-lg font-semibold">Top Repositories</h2>
-                <button className="text-sm text-muted-foreground hover:text-foreground transition-colors">View All</button>
-              </div>
-              <div className="divide-y divide-border">
-                {stats.topRepositories.map((repo, i) => (
-                  <div key={i} className="p-4 hover:bg-accent/50 transition-colors flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground group-hover:text-foreground group-hover:bg-accent transition-colors">
-                        <GitCommit className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium group-hover:text-foreground transition-colors">{repo.name}</h3>
-                        <p className="text-sm text-muted-foreground">{repo.commits} commits</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right hidden sm:block">
-                        <div className="text-xs text-muted-foreground mb-1">Activity</div>
-                        <div className="flex gap-0.5">
-                          {[...Array(5)].map((_, j) => (
-                            <div key={j} className={`w-1 h-4 rounded-full ${j < 3 ? 'bg-primary/50' : 'bg-secondary'}`} />
-                          ))}
-                        </div>
-                      </div>
-                      <button className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors">
-                        <TrendingUp className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Sine Wave Activity Graphs */}
-            
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-card/30 border border-border rounded-xl p-6">
-              <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-              <div className="space-y-3">
-                <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary border border-border hover:border-accent transition-all group text-left">
-                  <div className="w-8 h-8 rounded-md bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:text-blue-400">
-                    <GitPullRequest className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm">Review PR</div>
-                    <div className="text-xs text-muted-foreground">Start a new code review</div>
-                  </div>
-                </button>
-                <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary border border-border hover:border-accent transition-all group text-left">
-                  <div className="w-8 h-8 rounded-md bg-purple-500/10 flex items-center justify-center text-purple-500 group-hover:text-purple-400">
-                    <Github className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm">Connect Repo</div>
-                    <div className="text-xs text-muted-foreground">Add a new repository</div>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-linear-to-br from-primary/10 to-amber-500/5 border border-primary/20 rounded-xl p-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Code2 className="w-24 h-24" />
-              </div>
-              <h2 className="text-lg font-semibold mb-2 relative z-10">Rabbit Stack AI</h2>
-              <p className="text-sm text-muted-foreground mb-4 relative z-10">
-                Your AI code reviewer is active and ready to analyze your pull requests.
-              </p>
-              <div className="flex items-center gap-2 text-xs font-medium text-emerald-400 bg-emerald-500/10 w-fit px-2 py-1 rounded border border-emerald-500/20">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                System Operational
-              </div>
-            </div>
-          </div>
+          </GlowPanel>
         </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }
 
-function StatCard({ title, value, icon, trend }: { title: string, value: number | string, icon: React.ReactNode, trend?: string }) {
+function ActionLink({
+  href,
+  icon: Icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: typeof GitPullRequest;
+  title: string;
+  description: string;
+}) {
   return (
-    <div className="bg-card/30 border border-border rounded-xl p-6 hover:border-accent transition-colors group">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-2 bg-secondary rounded-lg group-hover:bg-accent transition-colors">
-          {icon}
-        </div>
-        {trend && (
-          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
-            {trend}
-          </span>
-        )}
+    <Link
+      href={href}
+      className="group flex items-center gap-3 rounded-lg border border-border bg-background/35 p-3 transition-colors hover:border-primary/30 hover:bg-accent/40"
+    >
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-secondary/70 text-primary">
+        <Icon className="h-4 w-4" />
       </div>
-      <div>
-        <h3 className="text-muted-foreground text-sm font-medium mb-1">{title}</h3>
-        <div className="text-2xl font-bold">{value.toLocaleString()}</div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="truncate text-xs text-muted-foreground">{description}</p>
       </div>
-    </div>
+      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+    </Link>
   );
 }
