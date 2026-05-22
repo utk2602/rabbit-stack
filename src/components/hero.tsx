@@ -1,111 +1,130 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { DecorIcon } from "@/components/ui/decor-icon";
-import { FullWidthDivider } from "@/components/ui/full-width-divider";
+import {
+  ArrowRightIcon,
+  BookOpenIcon,
+  CheckCircle2,
+  GitPullRequest,
+  Radar,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
+
+import { ReactBitsStage } from "@/components/brand/react-bits-stage";
+import { ReviewSignal } from "@/components/brand/review-signal";
+import { SpotlightSurface } from "@/components/brand/spotlight-surface";
 import { Button } from "@/components/ui/button";
-import { ArrowRightIcon, BookOpenIcon } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 interface HeroSectionProps {
-	onAuthClick?: () => void;
+  onAuthClick?: () => void;
 }
 
+const previewFindings = [
+  "Missing authorization check on repository settings update.",
+  "Webhook signature verification fails closed when header is absent.",
+  "Index retry flow should preserve the previous successful snapshot.",
+];
+
 export function HeroSection({ onAuthClick }: HeroSectionProps) {
-	return (
-		<section>
-			<div className="relative flex flex-col items-center justify-center gap-5 px-4 py-12 md:px-4 md:py-24 lg:py-28">
-				{/* X Faded Borders & Shades */}
-				<div
-					aria-hidden="true"
-					className="absolute inset-0 -z-1 size-full overflow-hidden"
-				>
-					<div
-						className={cn(
-							"absolute -inset-x-20 inset-y-0 z-0 rounded-full",
-							"bg-[radial-gradient(ellipse_at_center,theme(--color-foreground/.1),transparent,transparent)]",
-							"blur-[50px]"
-						)}
-					/>
-					<div className="absolute inset-y-0 left-4 w-px bg-linear-to-b from-transparent via-border to-border md:left-8" />
-					<div className="absolute inset-y-0 right-4 w-px bg-linear-to-b from-transparent via-border to-border md:right-8" />
-					<div className="absolute inset-y-0 left-8 w-px bg-linear-to-b from-transparent via-border/50 to-border/50 md:left-12" />
-					<div className="absolute inset-y-0 right-8 w-px bg-linear-to-b from-transparent via-border/50 to-border/50 md:right-12" />
-				</div>
-				<a
-					className={cn(
-						"group mx-auto flex w-fit items-center gap-3 rounded-sm border bg-card p-1 shadow",
-						"fade-in slide-in-from-bottom-10 animate-in fill-mode-backwards transition-all delay-500 duration-500 ease-out"
-					)}
-					href="/docs"
-				>
-					<div className="rounded-xs border bg-primary/10 text-primary px-1.5 py-0.5 shadow-sm">
-						<p className="font-mono text-xs">AI</p>
-					</div>
+  return (
+    <ReactBitsStage className="min-h-[calc(100vh-4rem)]">
+      <section className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:px-8">
+        <div className="max-w-3xl">
+          <div className="mb-6 flex flex-wrap gap-2">
+            <StatusBadge tone="good">AI reviewer online</StatusBadge>
+            <StatusBadge tone="info">GitHub PR automation</StatusBadge>
+          </div>
 
-					<span className="text-xs">Automated code reviews, every PR</span>
-					<span className="block h-5 border-l" />
+          <h1 className="font-brand text-5xl font-black leading-[0.95] tracking-normal text-foreground sm:text-6xl lg:text-7xl">
+            Rabbit Stack
+            <span className="mt-3 block text-gradient-primary">
+              reviews pull requests before they bite back.
+            </span>
+          </h1>
 
-					<div className="pr-1">
-						<ArrowRightIcon className="size-3 -translate-x-0.5 duration-150 ease-out group-hover:translate-x-0.5" />
-					</div>
-				</a>
+          <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+            Connect GitHub repositories, let Rabbit Stack index your codebase, and
+            get focused AI review reports with inline comments, security findings,
+            and retryable background jobs.
+          </p>
 
-				<h1
-					className={cn(
-						"max-w-2xl text-balance text-center text-3xl text-foreground md:text-5xl lg:text-6xl",
-						"fade-in slide-in-from-bottom-10 animate-in fill-mode-backwards delay-100 duration-500 ease-out"
-					)}
-				>
-					AI Code Reviews That Ship Confidence
-				</h1>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Button size="lg" onClick={onAuthClick}>
+              Connect GitHub
+              <ArrowRightIcon className="h-4 w-4" />
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <a href="/docs">
+                <BookOpenIcon className="h-4 w-4" />
+                View docs
+              </a>
+            </Button>
+          </div>
 
-				<p
-					className={cn(
-						"text-center text-muted-foreground text-sm tracking-wider sm:text-lg",
-						"fade-in slide-in-from-bottom-10 animate-in fill-mode-backwards delay-200 duration-500 ease-out"
-					)}
-				>
-					Your team moves fast with AI. But fast shouldn&apos;t mean sloppy. <br /> We make sure every line still earns its merge.
-				</p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <HeroStat icon={GitPullRequest} value="Every PR" label="reviewed automatically" />
+            <HeroStat icon={ShieldCheck} value="Security" label="findings highlighted" />
+            <HeroStat icon={Zap} value="Retryable" label="background review jobs" />
+          </div>
+        </div>
 
-				<div className="fade-in slide-in-from-bottom-10 flex w-fit animate-in items-center justify-center gap-3 fill-mode-backwards pt-2 delay-300 duration-500 ease-out">
-					<Button asChild variant="outline">
-						<a href="/docs">
-							<BookOpenIcon data-icon="inline-start" />{" "}
-							Documentation
-						</a>
-					</Button>
-					<Button id="hero-get-started" onClick={onAuthClick}>
-						Get Started{" "}
-						<ArrowRightIcon data-icon="inline-end" />
-					</Button>
-				</div>
-			</div>
-			<div className="relative">
-				<DecorIcon className="size-4" position="top-left" />
-				<DecorIcon className="size-4" position="top-right" />
-				<DecorIcon className="size-4" position="bottom-left" />
-				<DecorIcon className="size-4" position="bottom-right" />
+        <SpotlightSurface className="p-0" spotlightColor="rgba(91, 216, 255, 0.20)">
+          <div className="grid gap-0 lg:grid-cols-[0.85fr_1.15fr]">
+            <div className="border-b border-border p-5 lg:border-b-0 lg:border-r">
+              <ReviewSignal className="mx-auto max-w-64" />
+              <div className="mt-5">
+                <StatusBadge tone="good">Review passed with warnings</StatusBadge>
+                <h2 className="mt-4 text-xl font-semibold">PR #128: webhook hardening</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Rabbit Stack found 3 actionable issues and generated 5 inline comments.
+                </p>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold">AI review report</p>
+                  <p className="text-xs text-muted-foreground">api/webhooks/github/route.ts</p>
+                </div>
+                <Radar className="h-5 w-5 text-primary" />
+              </div>
+              <div className="space-y-3">
+                {previewFindings.map((finding, index) => (
+                  <div
+                    key={finding}
+                    className="rounded-lg border border-border bg-background/45 p-3"
+                  >
+                    <div className="mb-2 flex items-center gap-2 text-xs text-primary">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Finding {index + 1}
+                    </div>
+                    <p className="text-sm leading-6 text-muted-foreground">{finding}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </SpotlightSurface>
+      </section>
+    </ReactBitsStage>
+  );
+}
 
-				<FullWidthDivider className="-top-px" />
-				<div className="overflow-hidden *:pointer-events-none *:aspect-video *:select-none">
-					<img
-						alt="light app screen"
-						className="dark:hidden"
-						height="auto"
-						src="https://storage.efferd.com/screen/dashboard-light.webp"
-						width="auto"
-					/>
-					<img
-						alt="dark app screen"
-						className="hidden dark:block"
-						height="auto"
-						src="https://storage.efferd.com/screen/dashboard-dark.webp"
-						width="auto"
-					/>
-				</div>
-				<FullWidthDivider className="-bottom-px" />
-			</div>
-		</section>
-	);
+function HeroStat({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: typeof GitPullRequest;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background/45 p-4 backdrop-blur">
+      <Icon className="mb-3 h-5 w-5 text-primary" />
+      <p className="font-semibold">{value}</p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">{label}</p>
+    </div>
+  );
 }

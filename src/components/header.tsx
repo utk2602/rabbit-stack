@@ -1,72 +1,67 @@
 "use client";
-import { cn } from "@/lib/utils";
-import { useScroll } from "@/hooks/use-scroll";
+
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/mobile-nav";
+import { AnimatedWordmark } from "@/components/brand/animated-wordmark";
+import { cn } from "@/lib/utils";
+import { useScroll } from "@/hooks/use-scroll";
+import { ArrowRightIcon } from "lucide-react";
 
 export const navLinks = [
-		
-	{
-		label: "Docs",
-		href: "/docs",
-	},
+  {
+    label: "Docs",
+    href: "/docs",
+  },
+  {
+    label: "Security",
+    href: "/docs#security",
+  },
+  {
+    label: "Workflow",
+    href: "/docs#how-it-works",
+  },
 ];
 
 interface HeaderProps {
-	onAuthClick?: () => void;
+  onAuthClick?: () => void;
 }
 
 export function Header({ onAuthClick }: HeaderProps) {
-	const scrolled = useScroll(10);
+  const scrolled = useScroll(10);
 
-	return (
-		<header
-			className={cn(
-				"sticky top-0 z-50 mx-auto w-full max-w-4xl border-transparent border-b md:rounded-md md:border md:transition-all md:ease-out",
-				{
-					"border-border bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/50 md:top-2 md:max-w-3xl md:shadow":
-						scrolled,
-				}
-			)}
-		>
-			<nav
-				className={cn(
-					"flex h-14 w-full items-center justify-between px-4 md:h-12 md:transition-all md:ease-out",
-					{
-						"md:px-2": scrolled,
-					}
-				)}
-			>
-				<a
-					className="flex items-center gap-2 rounded-md p-2 hover:bg-muted dark:hover:bg-muted/50"
-					href="/"
-				>
-					<div className="h-6 w-6 rounded-md bg-primary flex items-center justify-center">
-						<span className="text-primary-foreground font-bold text-sm">R</span>
-					</div>
-					<span className="font-bold text-sm tracking-tight">Rabbit Stack</span>
-				</a>
-				<div className="hidden items-center gap-2 md:flex">
-					<div>
-						{navLinks.map((link) => (
-							<Button asChild key={link.label} size="sm" variant="ghost">
-								<a href={link.href}>{link.label}</a>
-							</Button>
-						))}
-					</div>
-					{onAuthClick && (
-						<Button size="sm" variant="outline" onClick={onAuthClick}>
-							Sign In
-						</Button>
-					)}
-					{onAuthClick && (
-						<Button size="sm" onClick={onAuthClick}>
-							Get Started
-						</Button>
-					)}
-				</div>
-				<MobileNav onAuthClick={onAuthClick} />
-			</nav>
-		</header>
-	);
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-50 border-b border-border/60 bg-background/75 backdrop-blur-xl transition-all",
+        scrolled && "bg-background/95 shadow-[0_16px_50px_rgba(0,0,0,0.25)]"
+      )}
+    >
+      <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <a href="/" className="rounded-lg p-1 transition-colors hover:bg-accent/60">
+          <AnimatedWordmark compact />
+        </a>
+
+        <div className="hidden items-center gap-2 md:flex">
+          {navLinks.map((link) => (
+            <Button asChild key={link.label} size="sm" variant="ghost">
+              <a href={link.href}>{link.label}</a>
+            </Button>
+          ))}
+          {onAuthClick && (
+            <>
+              <Button size="sm" variant="outline" onClick={onAuthClick}>
+                Sign In
+              </Button>
+              <Button size="sm" onClick={onAuthClick}>
+                Connect GitHub
+                <ArrowRightIcon className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+
+        <MobileNav onAuthClick={onAuthClick} />
+      </nav>
+    </header>
+  );
 }
