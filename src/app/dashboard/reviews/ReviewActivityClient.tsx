@@ -1,25 +1,33 @@
 "use client";
 
 import React, { useState } from "react";
-import { toast } from "sonner";
 import {
-  GitPullRequest,
-  Clock,
-  CheckCircle2,
-  XCircle,
   AlertTriangle,
-  Loader2,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Clock,
   ExternalLink,
-  MessageSquare,
-  Zap,
   FileCode,
+  GitPullRequest,
   Info,
-  Search,
-  Filter,
+  Loader2,
+  MessageSquare,
   RotateCcw,
+  Search,
+  XCircle,
+  Zap,
 } from "lucide-react";
+import { toast } from "sonner";
+
+import { EmptyState } from "@/components/ui/empty-state";
+import { GlowPanel } from "@/components/ui/glow-panel";
+import { MetricCard } from "@/components/ui/metric-card";
+import { PageHeader } from "@/components/ui/page-header";
+import { SearchInput } from "@/components/ui/search-input";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { cn } from "@/lib/utils";
 
 interface ReviewComment {
   id: string;
@@ -58,6 +66,8 @@ interface Review {
   comments: ReviewComment[];
 }
 
+type StatusFilter = "all" | "completed" | "running" | "failed";
+
 interface ReviewActivityClientProps {
   reviews: Review[];
 }
@@ -65,26 +75,33 @@ interface ReviewActivityClientProps {
 export function ReviewActivityClient({ reviews }: ReviewActivityClientProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [retryingId, setRetryingId] = useState<string | null>(null);
-
-  const filteredReviews = reviews.filter((r) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      r.pullTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.repository.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.author.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
 
   const statusCounts = {
     all: reviews.length,
-    completed: reviews.filter((r) => r.status === "completed").length,
-    pending: reviews.filter((r) => r.status === "pending").length,
-    in_progress: reviews.filter((r) => r.status === "in_progress").length,
-    failed: reviews.filter((r) => r.status === "failed").length,
+    completed: reviews.filter((review) => review.status === "completed").length,
+    running: reviews.filter((review) =>
+      ["pending", "in_progress"].includes(review.status)
+    ).length,
+    failed: reviews.filter((review) => review.status === "failed").length,
   };
+
+  const filteredReviews = reviews.filter((review) => {
+    const matchesSearch =
+      searchQuery === "" ||
+      review.pullTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      review.repository.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      review.author.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" ||
+      review.status === statusFilter ||
+      (statusFilter === "running" &&
+        ["pending", "in_progress"].includes(review.status));
+
+    return matchesSearch && matchesStatus;
+  });
 
   const handleRetry = async (review: Review) => {
     setRetryingId(review.id);
@@ -96,145 +113,120 @@ export function ReviewActivityClient({ reviews }: ReviewActivityClientProps) {
       const response = await fetch(`/api/reviews/${review.id}/retry`, {
         method: "POST",
       });
-      const data = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to queue retry");
+        throw new Error(result.error || "Failed to queue retry");
       }
 
       toast.success(`Review retry queued for #${review.pullNumber}`, {
         id: `retry-review-${review.id}`,
       });
       window.location.reload();
-    } catch (error) {
+    } catch (retryError) {
       toast.error("Failed to queue retry", {
         id: `retry-review-${review.id}`,
-        description: error instanceof Error ? error.message : "Please try again.",
+        description: retryError instanceof Error ? retryError.message : "Please try again.",
       });
     } finally {
       setRetryingId(null);
     }
   };
 
+  const filterOptions: Array<{ value: StatusFilter; label: string; count: number }> = [
+    { value: "all", label: "All", count: statusCounts.all },
+    { value: "completed", label: "Completed", count: statusCounts.completed },
+    { value: "running", label: "Running", count: statusCounts.running },
+    { value: "failed", label: "Failed", count: statusCounts.failed },
+  ];
+
   return (
-    <div className="font-sans">
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Review Activity</h1>
-          <p className="text-muted-foreground">
-            Track your AI-powered code reviews across all repositories.
-          </p>
-        </div>
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <PageHeader
+        icon={GitPullRequest}
+        eyebrow="Review activity"
+        title="AI Review Reports"
+        description="Inspect completed reviews, retry failed jobs, and trace comments back to pull requests."
+        meta={
+          <>
+            <StatusBadge tone="good">{statusCounts.completed} completed</StatusBadge>
+            <StatusBadge tone={statusCounts.running > 0 ? "info" : "idle"} pulse={statusCounts.running > 0}>
+              {statusCounts.running} running
+            </StatusBadge>
+            <StatusBadge tone={statusCounts.failed > 0 ? "bad" : "idle"}>
+              {statusCounts.failed} failed
+            </StatusBadge>
+          </>
+        }
+      />
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <StatPill
-            label="Total"
-            count={statusCounts.all}
-            active={statusFilter === "all"}
-            onClick={() => setStatusFilter("all")}
-            color="text-foreground"
-          />
-          <StatPill
-            label="Completed"
-            count={statusCounts.completed}
-            active={statusFilter === "completed"}
-            onClick={() => setStatusFilter("completed")}
-            color="text-green-500"
-            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-          />
-          <StatPill
-            label="In Progress"
-            count={statusCounts.in_progress + statusCounts.pending}
-            active={statusFilter === "pending" || statusFilter === "in_progress"}
-            onClick={() => setStatusFilter("pending")}
-            color="text-yellow-500"
-            icon={<Loader2 className="w-3.5 h-3.5" />}
-          />
-          <StatPill
-            label="Failed"
-            count={statusCounts.failed}
-            active={statusFilter === "failed"}
-            onClick={() => setStatusFilter("failed")}
-            color="text-red-500"
-            icon={<XCircle className="w-3.5 h-3.5" />}
-          />
-        </div>
+      <section className="grid gap-4 md:grid-cols-3">
+        <MetricCard
+          title="Reviews"
+          value={statusCounts.all}
+          detail="Recent review jobs"
+          icon={GitPullRequest}
+          tone="primary"
+        />
+        <MetricCard
+          title="Inline Comments"
+          value={reviews.reduce((total, review) => total + review.comments.length, 0)}
+          detail="Posted or generated findings"
+          icon={MessageSquare}
+          tone="cyan"
+        />
+        <MetricCard
+          title="Issues Flagged"
+          value={reviews.reduce((total, review) => total + review.issues.length, 0)}
+          detail="Review-level issue summaries"
+          icon={AlertTriangle}
+          tone={statusCounts.failed > 0 ? "amber" : "violet"}
+        />
+      </section>
 
-        {/* Search */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by PR title, repo, or author..."
+      <GlowPanel className="p-4" accent="violet">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <SearchInput
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+            onValueChange={setSearchQuery}
+            placeholder="Search by PR title, repository, or author..."
+            containerClassName="w-full lg:max-w-xl"
+          />
+          <SegmentedControl
+            value={statusFilter}
+            options={filterOptions}
+            onValueChange={setStatusFilter}
           />
         </div>
+      </GlowPanel>
 
-        {/* Reviews List */}
-        {filteredReviews.length === 0 ? (
-          <div className="text-center py-16">
-            <GitPullRequest className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-30" />
-            <h3 className="text-lg font-medium mb-2">No reviews yet</h3>
-            <p className="text-muted-foreground text-sm max-w-md mx-auto">
-              {reviews.length === 0
-                ? "When you connect repositories and open pull requests, AI reviews will appear here."
-                : "No reviews match your search criteria."}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredReviews.map((review) => (
-              <ReviewCard
-                key={review.id}
-                review={review}
-                isExpanded={expandedId === review.id}
-                onToggle={() =>
-                  setExpandedId(expandedId === review.id ? null : review.id)
-                }
-                onRetry={() => handleRetry(review)}
-                isRetrying={retryingId === review.id}
-              />
-            ))}
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-function StatPill({
-  label,
-  count,
-  active,
-  onClick,
-  color,
-  icon,
-}: {
-  label: string;
-  count: number;
-  active: boolean;
-  onClick: () => void;
-  color: string;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${
-        active
-          ? "bg-primary/10 border-primary/30"
-          : "bg-card/30 border-border hover:border-accent"
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        {icon && <span className={color}>{icon}</span>}
-        <span className="text-sm font-medium">{label}</span>
-      </div>
-      <span className={`text-lg font-bold ${color}`}>{count}</span>
-    </button>
+      {filteredReviews.length === 0 ? (
+        <EmptyState
+          icon={reviews.length === 0 ? GitPullRequest : Search}
+          title={reviews.length === 0 ? "No reviews yet" : "No matching reviews"}
+          description={
+            reviews.length === 0
+              ? "When connected repositories receive pull requests, Rabbit Stack review reports will appear here."
+              : "Try a different search query or status filter."
+          }
+        />
+      ) : (
+        <div className="space-y-3">
+          {filteredReviews.map((review) => (
+            <ReviewCard
+              key={review.id}
+              review={review}
+              isExpanded={expandedId === review.id}
+              onToggle={() =>
+                setExpandedId(expandedId === review.id ? null : review.id)
+              }
+              onRetry={() => handleRetry(review)}
+              isRetrying={retryingId === review.id}
+            />
+          ))}
+        </div>
+      )}
+    </main>
   );
 }
 
@@ -251,108 +243,85 @@ function ReviewCard({
   onRetry: () => void;
   isRetrying: boolean;
 }) {
-  const statusConfig: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-    completed: {
-      icon: <CheckCircle2 className="w-4 h-4" />,
-      color: "text-green-500 bg-green-500/10 border-green-500/20",
-      label: "Completed",
-    },
-    pending: {
-      icon: <Clock className="w-4 h-4" />,
-      color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20",
-      label: "Pending",
-    },
-    in_progress: {
-      icon: <Loader2 className="w-4 h-4 animate-spin" />,
-      color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
-      label: "In Progress",
-    },
-    failed: {
-      icon: <XCircle className="w-4 h-4" />,
-      color: "text-red-500 bg-red-500/10 border-red-500/20",
-      label: "Failed",
-    },
-  };
-
-  const status = statusConfig[review.status] || statusConfig.pending;
-  const timeAgo = getTimeAgo(new Date(review.createdAt));
   const issueCount = review.issues.length;
   const commentCount = review.comments.length;
+  const status = getReviewStatus(review.status);
 
   return (
-    <div className="bg-card/30 border border-border rounded-xl overflow-hidden hover:border-accent transition-colors">
-      {/* Header */}
+    <GlowPanel
+      interactive
+      accent={review.status === "failed" ? "rose" : review.status === "completed" ? "primary" : "cyan"}
+      className="overflow-hidden p-0"
+    >
       <button
         onClick={onToggle}
-        className="w-full px-5 py-4 flex items-center gap-4 text-left"
+        className="flex w-full items-center gap-4 px-5 py-4 text-left"
       >
-        <GitPullRequest className="w-5 h-5 text-muted-foreground shrink-0" />
+        <div className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-lg border", status.iconTone)}>
+          {status.icon}
+        </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium truncate">{review.pullTitle}</span>
-            <span className="text-xs text-muted-foreground shrink-0">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex min-w-0 items-center gap-2">
+            <span className="truncate font-medium">{review.pullTitle}</span>
+            <span className="shrink-0 font-mono text-xs text-muted-foreground">
               #{review.pullNumber}
             </span>
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span>{review.repository.fullName}</span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span className="truncate">{review.repository.fullName}</span>
             <span>by {review.author}</span>
-            <span>{timeAgo}</span>
+            <span>{getTimeAgo(new Date(review.createdAt))}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="hidden items-center gap-2 sm:flex">
           {commentCount > 0 && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <MessageSquare className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <MessageSquare className="h-3.5 w-3.5" />
               {commentCount}
-            </div>
+            </span>
           )}
           {issueCount > 0 && (
-            <div className="flex items-center gap-1 text-xs text-yellow-500">
-              <AlertTriangle className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1 text-xs text-amber-200">
+              <AlertTriangle className="h-3.5 w-3.5" />
               {issueCount}
-            </div>
+            </span>
           )}
-          <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${status.color}`}
-          >
-            {status.icon}
+          <StatusBadge tone={status.tone} pulse={status.pulse}>
             {status.label}
-          </span>
-          {isExpanded ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          )}
+          </StatusBadge>
         </div>
+
+        {isExpanded ? (
+          <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
       </button>
 
-      {/* Expanded Details */}
       {isExpanded && (
-        <div className="px-5 pb-5 border-t border-border pt-4 space-y-4">
-          {/* Meta row */}
-          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <FileCode className="w-3.5 h-3.5" />
-              {review.baseBranch} ← {review.headBranch}
+        <div className="space-y-5 border-t border-border px-5 pb-5 pt-4">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <FileCode className="h-3.5 w-3.5" />
+              {review.baseBranch} &lt;- {review.headBranch}
             </span>
             {review.processingMs && (
-              <span className="flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 text-primary" />
+              <span className="inline-flex items-center gap-1">
+                <Zap className="h-3.5 w-3.5 text-primary" />
                 {(review.processingMs / 1000).toFixed(1)}s processing
               </span>
             )}
             {review.tokensUsed && (
-              <span className="flex items-center gap-1">
-                <Info className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-1">
+                <Info className="h-3.5 w-3.5" />
                 {review.tokensUsed.toLocaleString()} tokens
               </span>
             )}
-          {review.postedToGithub && (
-              <span className="flex items-center gap-1 text-green-500">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+            {review.postedToGithub && (
+              <span className="inline-flex items-center gap-1 text-emerald-200">
+                <CheckCircle2 className="h-3.5 w-3.5" />
                 Posted to GitHub
               </span>
             )}
@@ -360,9 +329,9 @@ function ReviewCard({
               <button
                 onClick={onRetry}
                 disabled={isRetrying}
-                className="ml-auto flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-accent hover:bg-accent hover:text-foreground disabled:opacity-60"
+                className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground disabled:opacity-60"
               >
-                <RotateCcw className={`h-3.5 w-3.5 ${isRetrying ? "animate-spin" : ""}`} />
+                <RotateCcw className={cn("h-3.5 w-3.5", isRetrying && "animate-spin")} />
                 Retry
               </button>
             )}
@@ -370,144 +339,185 @@ function ReviewCard({
               href={review.pullUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-primary hover:underline ml-auto"
+              className="ml-auto inline-flex items-center gap-1 text-primary hover:text-primary/80"
             >
-              View PR <ExternalLink className="w-3 h-3" />
+              View PR <ExternalLink className="h-3 w-3" />
             </a>
           </div>
 
-          {/* Summary */}
           {review.summary && (
-            <div className="bg-secondary/50 rounded-lg p-4">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Summary
-              </h4>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {review.summary}
-              </p>
-            </div>
+            <ReportSection title="Summary" tone="primary">
+              <p className="whitespace-pre-wrap text-sm leading-6">{review.summary}</p>
+            </ReportSection>
           )}
 
-          {/* Strengths & Issues */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gap-4 md:grid-cols-2">
             {review.strengths.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-green-500">
-                  Strengths
-                </h4>
-                <ul className="space-y-1">
-                  {review.strengths.map((s, i) => (
-                    <li
-                      key={i}
-                      className="text-sm text-muted-foreground flex items-start gap-2"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500 mt-0.5 shrink-0" />
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <ReportSection title="Strengths" tone="good">
+                <FindingList items={review.strengths} icon={CheckCircle2} tone="good" />
+              </ReportSection>
             )}
             {review.issues.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-yellow-500">
-                  Issues
-                </h4>
-                <ul className="space-y-1">
-                  {review.issues.map((issue, i) => (
-                    <li
-                      key={i}
-                      className="text-sm text-muted-foreground flex items-start gap-2"
-                    >
-                      <AlertTriangle className="w-3.5 h-3.5 text-yellow-500 mt-0.5 shrink-0" />
-                      {issue}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <ReportSection title="Issues" tone="warn">
+                <FindingList items={review.issues} icon={AlertTriangle} tone="warn" />
+              </ReportSection>
             )}
           </div>
 
-          {/* Suggestions */}
           {review.suggestions.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-blue-500">
-                Suggestions
-              </h4>
-              <ul className="space-y-1">
-                {review.suggestions.map((s, i) => (
-                  <li
-                    key={i}
-                    className="text-sm text-muted-foreground flex items-start gap-2"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
-                    {s}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <ReportSection title="Suggestions" tone="info">
+              <FindingList items={review.suggestions} icon={Zap} tone="info" />
+            </ReportSection>
           )}
 
-          {/* Inline Comments */}
           {review.comments.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Inline Comments ({review.comments.length})
-              </h4>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+            <ReportSection title={`Inline Comments (${review.comments.length})`} tone="neutral">
+              <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                 {review.comments.map((comment) => (
                   <div
                     key={comment.id}
-                    className="bg-secondary/30 rounded-lg p-3 border border-border"
+                    className="rounded-lg border border-border bg-background/35 p-3"
                   >
-                    <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
-                      <FileCode className="w-3 h-3" />
-                      <span className="font-mono">{comment.path}</span>
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <FileCode className="h-3 w-3" />
+                      <span className="max-w-full truncate font-mono">{comment.path}</span>
                       <span>L{comment.line}</span>
-                      <span
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          comment.severity === "error"
-                            ? "bg-red-500/10 text-red-500"
-                            : comment.severity === "warning"
-                            ? "bg-yellow-500/10 text-yellow-500"
-                            : "bg-blue-500/10 text-blue-500"
-                        }`}
-                      >
-                        {comment.severity}
-                      </span>
+                      <CommentSeverity severity={comment.severity} />
                     </div>
-                    <p className="text-sm">{comment.body}</p>
+                    <p className="text-sm leading-6">{comment.body}</p>
                   </div>
                 ))}
               </div>
-            </div>
+            </ReportSection>
           )}
 
-          {/* Error */}
           {review.error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-red-500 mb-1">
-                Error
-              </h4>
-              <p className="text-sm text-red-400">{review.error}</p>
-            </div>
+            <ReportSection title="Error" tone="bad">
+              <p className="text-sm leading-6 text-rose-100">{review.error}</p>
+            </ReportSection>
           )}
 
-          {/* Poem */}
           {review.poem && (
-            <div className="bg-secondary/30 rounded-lg p-4 border-l-2 border-primary">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-                Review Poem
-              </h4>
-              <p className="text-sm italic text-muted-foreground whitespace-pre-wrap">
+            <ReportSection title="Review Poem" tone="primary">
+              <p className="whitespace-pre-wrap text-sm italic leading-6 text-muted-foreground">
                 {review.poem}
               </p>
-            </div>
+            </ReportSection>
           )}
         </div>
       )}
-    </div>
+    </GlowPanel>
   );
+}
+
+function ReportSection({
+  title,
+  tone,
+  children,
+}: {
+  title: string;
+  tone: "primary" | "good" | "warn" | "info" | "bad" | "neutral";
+  children: React.ReactNode;
+}) {
+  const toneClass = {
+    primary: "border-primary/20 bg-primary/5",
+    good: "border-emerald-400/20 bg-emerald-400/5",
+    warn: "border-amber-400/20 bg-amber-400/5",
+    info: "border-cyan-400/20 bg-cyan-400/5",
+    bad: "border-rose-400/20 bg-rose-400/10",
+    neutral: "border-border bg-background/30",
+  }[tone];
+
+  return (
+    <section className={cn("rounded-lg border p-4", toneClass)}>
+      <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h4>
+      {children}
+    </section>
+  );
+}
+
+function FindingList({
+  items,
+  icon: Icon,
+  tone,
+}: {
+  items: string[];
+  icon: typeof CheckCircle2;
+  tone: "good" | "warn" | "info";
+}) {
+  const iconClass = {
+    good: "text-emerald-200",
+    warn: "text-amber-200",
+    info: "text-cyan-200",
+  }[tone];
+
+  return (
+    <ul className="space-y-2">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`} className="flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+          <Icon className={cn("mt-1 h-3.5 w-3.5 shrink-0", iconClass)} />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function CommentSeverity({ severity }: { severity: string }) {
+  const tone =
+    severity === "error"
+      ? "bg-rose-400/10 text-rose-200"
+      : severity === "warning"
+        ? "bg-amber-400/10 text-amber-200"
+        : "bg-cyan-400/10 text-cyan-200";
+
+  return (
+    <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-medium", tone)}>
+      {severity}
+    </span>
+  );
+}
+
+function getReviewStatus(status: string) {
+  if (status === "completed") {
+    return {
+      label: "Completed",
+      tone: "good" as const,
+      pulse: false,
+      iconTone: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
+      icon: <CheckCircle2 className="h-4 w-4" />,
+    };
+  }
+
+  if (status === "failed") {
+    return {
+      label: "Failed",
+      tone: "bad" as const,
+      pulse: false,
+      iconTone: "border-rose-400/20 bg-rose-400/10 text-rose-200",
+      icon: <XCircle className="h-4 w-4" />,
+    };
+  }
+
+  if (status === "in_progress") {
+    return {
+      label: "In Progress",
+      tone: "info" as const,
+      pulse: true,
+      iconTone: "border-cyan-400/20 bg-cyan-400/10 text-cyan-200",
+      icon: <Loader2 className="h-4 w-4 animate-spin" />,
+    };
+  }
+
+  return {
+    label: "Pending",
+    tone: "warn" as const,
+    pulse: false,
+    iconTone: "border-amber-400/20 bg-amber-400/10 text-amber-200",
+    icon: <Clock className="h-4 w-4" />,
+  };
 }
 
 function getTimeAgo(date: Date): string {
